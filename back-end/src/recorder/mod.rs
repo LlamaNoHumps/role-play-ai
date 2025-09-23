@@ -104,7 +104,7 @@ mod tests {
     async fn test_asr() {
         let env = get_env();
 
-        let storage_client = StorageClient::new(&env.qiniu_access_key, &env.qiniu_secret_key);
+        let mut storage_client = StorageClient::new(&env.qiniu_access_key, &env.qiniu_secret_key);
         storage_client.init_bucket().await.unwrap();
         let recorder = Recorder::new(Arc::new(storage_client), &env.qiniu_ai_api_key);
         let audio_data = recorder.asr("http://t2zfj0z3c.hd-bkt.clouddn.com/audio_e01b5f19-0bd9-4510-a580-fd6c44d14d53.mp3").await.unwrap();

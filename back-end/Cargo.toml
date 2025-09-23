@@ -10,6 +10,8 @@ opt-level = 'z'
 debug = true
 overflow-checks = true
 
+[lints.clippy]
+
 [dependencies]
 reqwest = { version = "0.12.23", default-features = false, features = [
     "json",
@@ -39,6 +41,7 @@ qiniu-sdk = { version = "0.2.4", default-features = false, features = [
     "http",
     "apis",
     "upload",
+    "download",
 ] }
 base64 = { version = "0.22.1", default-features = false }
 futures = { version = "0.3.31", default-features = false }
@@ -60,7 +63,10 @@ tracing-subscriber = { version = "0.3.20", default-features = false, features = 
     "chrono",
     "fmt",
 ] }
-firecrawl = { version = "1.2.1", default-features = false }
+mediawiki = { version = "0.3.1", default-features = false }
+llm-chain-openai = { version = "0.13.0", default-features = false }
+llm-chain = { version = "0.13.0", default-features = false }
+async-openai = { version = "0.16.3", default-features = false }
 
 [dev-dependencies]
 dotenv = { version = "0.15.0", default-features = false }

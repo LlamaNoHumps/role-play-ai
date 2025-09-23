@@ -1,5 +1,6 @@
 use crate::env::{ENV, Env};
 
+mod agents;
 mod database;
 mod env;
 mod error;
@@ -8,7 +9,6 @@ mod recorder;
 mod server;
 mod storage;
 mod trace;
-mod writer;
 
 #[tokio::main]
 async fn main() {
