@@ -1,0 +1,17 @@
+<mat-card>
+  <h2>登录</h2>
+  <form (ngSubmit)="submit()">
+    <mat-form-field appearance="outline" class="w100">
+      <mat-label>Email</mat-label>
+      <input matInput [(ngModel)]="email" name="email" required>
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="w100">
+      <mat-label>密码</mat-label>
+      <input matInput [(ngModel)]="password" name="password" type="password" required>
+    </mat-form-field>
+    <button mat-raised-button color="primary" [disabled]="loading">登录</button>
+    <a routerLink="/auth/register" style="margin-left:12px">去注册</a>
+    <p>{{msg}}</p>
+  </form>
+</mat-card>
+
