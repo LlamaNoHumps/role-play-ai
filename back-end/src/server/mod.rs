@@ -1,4 +1,4 @@
-use crate::{env::ENV, trace::trace_middleware};
+use crate::{database::Database, env::ENV, storage::StorageClient, trace::trace_middleware};
 use axum::{
     Router, middleware,
     routing::{get, post},
@@ -22,10 +22,28 @@ pub async fn run() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    let mut storage_client = StorageClient::new(&env.qiniu_access_key, &env.qiniu_secret_key);
+    storage_client.init_bucket().await.unwrap();
+
+    let database = Database::new(
+        &env.mysql_username,
+        &env.mysql_password,
+        &env.mysql_endpoint,
+    )
+    .await
+    .unwrap();
+    database.init().await.unwrap();
+
     let router = Router::new()
         .nest_service("/static", ServeDir::new("./static"))
         .route(handlers::index::PATH, get(handlers::index::handler))
-        .layer(middleware::from_fn(trace_middleware));
+        .route(handlers::login::PATH, post(handlers::login::handler))
+        .route(handlers::signup::PATH, post(handlers::signup::handler))
+        .route(handlers::upload::PATH, post(handlers::upload::handler))
+        .route(handlers::download::PATH, get(handlers::download::handler))
+        .layer(middleware::from_fn(trace_middleware))
+        .layer(storage_client.into_layer())
+        .layer(database.into_layer());
 
     let listener = tokio::net::TcpListener::bind((HOST, port)).await.unwrap();
 

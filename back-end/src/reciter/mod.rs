@@ -120,7 +120,7 @@ mod tests {
     async fn test_tts() {
         let env = get_env();
 
-        let storage_client = StorageClient::new(&env.qiniu_access_key, &env.qiniu_secret_key);
+        let mut storage_client = StorageClient::new(&env.qiniu_access_key, &env.qiniu_secret_key);
         storage_client.init_bucket().await.unwrap();
         let reciter = Reciter::new(Arc::new(storage_client), &env.qiniu_ai_api_key);
         let audio_data = reciter
