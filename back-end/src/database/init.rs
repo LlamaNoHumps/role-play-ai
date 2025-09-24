@@ -6,7 +6,7 @@
 */
 
 use super::Database;
-use crate::database::models::{conversation, users, voices};
+use crate::database::models::{conversation_template, conversations, roles, users};
 use anyhow::Result;
 use sea_orm::{ConnectionTrait, DatabaseConnection, EntityName, EntityTrait, Schema, Statement};
 
@@ -26,9 +26,11 @@ impl Database {
 
     pub async fn init(&self) -> Result<()> {
         self.create_table_if_not_exists(users::Entity).await?;
-        self.create_table_if_not_exists(conversation::Entity)
+        self.create_table_if_not_exists(roles::Entity).await?;
+        self.create_table_if_not_exists(conversation_template::Entity)
             .await?;
-        self.create_table_if_not_exists(voices::Entity).await?;
+        self.create_table_if_not_exists(conversations::Entity)
+            .await?;
 
         Ok(())
     }

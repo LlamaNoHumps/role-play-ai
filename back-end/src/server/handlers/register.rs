@@ -3,7 +3,7 @@ use axum::{Extension, Json};
 use serde::Deserialize;
 use std::sync::Arc;
 
-pub const PATH: &str = "/signup";
+pub const PATH: &str = "/api/auth/register";
 
 #[axum::debug_handler]
 pub async fn handler(
@@ -11,16 +11,18 @@ pub async fn handler(
     Json(data): Json<RequestParams>,
 ) -> HttpResult<()> {
     database
-        .add_user(&data.username, &data.password_hash)
+        .add_user(&data.username, &data.password_hash, &data.image_url)
         .await?;
 
     Ok(())
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct RequestParams {
-    #[serde(rename = "userName")]
+    #[serde(rename = "username")]
     username: String,
     #[serde(rename = "password")]
     password_hash: String,
+    #[serde(rename = "avatar")]
+    image_url: String,
 }

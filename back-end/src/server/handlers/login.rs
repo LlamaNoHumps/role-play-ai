@@ -4,10 +4,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-pub const PATH: &str = "/login";
+pub const PATH: &str = "/api/auth/login";
 
 #[axum::debug_handler]
 pub async fn handler(
@@ -20,7 +20,17 @@ pub async fn handler(
     {
         Ok(verified) => {
             if verified {
-                (StatusCode::OK, "Login successful").into_response()
+                let user = database.get_user(&data.username).await.unwrap();
+
+                (
+                    StatusCode::OK,
+                    Json(ResponseData {
+                        user_id: user.id,
+                        username: data.username,
+                        image_url: user.image,
+                    }),
+                )
+                    .into_response()
             } else {
                 (StatusCode::UNAUTHORIZED, "Invalid username or password").into_response()
             }
@@ -31,8 +41,16 @@ pub async fn handler(
 
 #[derive(Deserialize)]
 pub struct RequestParams {
-    #[serde(rename = "userName")]
+    #[serde(rename = "username")]
     username: String,
     #[serde(rename = "password")]
     password_hash: String,
+}
+
+#[derive(Serialize)]
+pub struct ResponseData {
+    user_id: i32,
+    username: String,
+    #[serde(rename = "avatar")]
+    image_url: String,
 }

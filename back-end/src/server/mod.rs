@@ -1,8 +1,17 @@
-use crate::{database::Database, env::ENV, storage::StorageClient, trace::trace_middleware};
+use std::{sync::Arc, time::Duration};
+
+use crate::{
+    agents::{AI, RoleBuilder, Summarizer},
+    database::Database,
+    env::ENV,
+    storage::StorageClient,
+    trace::trace_middleware,
+};
 use axum::{
-    Router, middleware,
+    Extension, Router, middleware,
     routing::{get, post},
 };
+use socketioxide::{SocketIo, extract::SocketRef};
 use tower_http::services::ServeDir;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -34,16 +43,57 @@ pub async fn run() {
     .unwrap();
     database.init().await.unwrap();
 
+    let ai = AI::new(&env.qiniu_ai_api_key);
+    let role_builder = RoleBuilder::new(ai.clone());
+
+    let (socketio_layer, socketio) = SocketIo::builder()
+        .ping_interval(Duration::from_secs(3))
+        .ping_timeout(Duration::from_secs(2))
+        .build_layer();
+
+    socketio.ns("/", |s: SocketRef| {});
+
     let router = Router::new()
         .nest_service("/static", ServeDir::new("./static"))
         .route(handlers::index::PATH, get(handlers::index::handler))
         .route(handlers::login::PATH, post(handlers::login::handler))
-        .route(handlers::signup::PATH, post(handlers::signup::handler))
+        .route(handlers::register::PATH, post(handlers::register::handler))
         .route(handlers::upload::PATH, post(handlers::upload::handler))
-        .route(handlers::download::PATH, get(handlers::download::handler))
+        .route(
+            handlers::role::create::PATH,
+            post(handlers::role::create::handler),
+        )
+        .route(
+            handlers::role::generate::PATH,
+            post(handlers::role::generate::handler),
+        )
+        .route(
+            handlers::role::details::PATH,
+            get(handlers::role::details::handler),
+        )
+        .route(
+            handlers::role::list::PATH,
+            get(handlers::role::list::handler),
+        )
+        .route(
+            handlers::conversation::new::PATH,
+            post(handlers::conversation::new::handler),
+        )
+        .route(
+            handlers::conversation::list::PATH,
+            get(handlers::conversation::list::handler),
+        )
+        .route(
+            handlers::conversation::dialogs::PATH,
+            get(handlers::conversation::dialogs::handler),
+        )
         .layer(middleware::from_fn(trace_middleware))
         .layer(storage_client.into_layer())
-        .layer(database.into_layer());
+        .layer(database.into_layer())
+        .layer(ai.into_layer())
+        .layer(role_builder.into_layer())
+        .layer(socketio_layer)
+        .layer(Extension(Arc::new(socketio)));
 
     let listener = tokio::net::TcpListener::bind((HOST, port)).await.unwrap();
 

@@ -1,5 +1,4 @@
-pub mod conversation;
+pub mod conversation_template;
+pub mod conversations;
 pub mod roles;
-pub mod tasks_tts;
 pub mod users;
-pub mod voices;

@@ -1,16 +1,18 @@
-use crate::database::status::TaskStatus;
 use sea_orm::{
     ActiveModelBehavior, DerivePrimaryKey, DeriveRelation, EnumIter, PrimaryKeyTrait,
     entity::prelude::DeriveEntityModel,
 };
 
 #[derive(Clone, Debug, DeriveEntityModel)]
-#[sea_orm(table_name = "tasks_tts")]
+#[sea_orm(table_name = "conversation_template")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
+    pub is_user: bool,
+    pub timestamp: i64,
+    #[sea_orm(column_type = "Text")]
     pub text: String,
-    pub status: TaskStatus,
+    pub voice: Option<String>,
 }
 
 #[derive(Clone, Debug, EnumIter, DeriveRelation)]

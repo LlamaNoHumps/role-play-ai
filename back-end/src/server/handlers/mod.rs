@@ -1,5 +1,6 @@
-pub mod download;
+pub mod conversation;
 pub mod index;
 pub mod login;
-pub mod signup;
+pub mod register;
+pub mod role;
 pub mod upload;

@@ -4,11 +4,12 @@ use sea_orm::{
 };
 
 #[derive(Clone, Debug, DeriveEntityModel)]
-#[sea_orm(table_name = "voices")]
+#[sea_orm(table_name = "conversations")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
-    pub filename: String,
+    pub user_id: i32,
+    pub role_id: i32,
 }
 
 #[derive(Clone, Debug, EnumIter, DeriveRelation)]
