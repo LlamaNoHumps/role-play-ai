@@ -1,10 +1,9 @@
 use anyhow::{Result, anyhow};
-use axum::Extension;
+use axum::{Extension, extract::path};
 use futures::io::Cursor;
 use qiniu_sdk::{
     apis::{Client, storage::create_bucket::PathParams},
     credential::Credential,
-    download::{DownloadManager, StaticDomainsUrlsGenerator},
     http_client::{AllRegionsProvider, RegionsProviderEndpoints},
     prelude::RegionsProvider,
     upload::{AutoUploader, AutoUploaderObjectParams, UploadManager, UploadTokenSigner},
@@ -106,6 +105,7 @@ impl StorageClient {
             .file_name(name)
             .build();
 
+        // 该方法有bug，无法上传jpg
         let res = uploader
             .async_upload_reader(Cursor::new(data), params)
             .await?;
@@ -115,20 +115,30 @@ impl StorageClient {
         Ok(object_info)
     }
 
-    pub async fn download_object(&self, name: &str) -> Result<Vec<u8>> {
-        let download_manager = DownloadManager::new(
-            StaticDomainsUrlsGenerator::builder(self.domain.clone())
-                .use_https(false) // 设置为 HTTP 协议
-                .build(),
-        );
+    pub async fn upload_object_from_file(&self, name: &str, path: &str) -> Result<ObjectInfo> {
+        let upload_manager = UploadManager::builder(UploadTokenSigner::new_credential_provider(
+            self.credential.to_owned(),
+            self.bucket_name,
+            Duration::from_secs(3600),
+        ))
+        .build();
 
-        let mut writer = Vec::new();
-        download_manager
-            .download(name)?
-            .to_async_writer(&mut writer)
-            .await?;
+        let uploader: AutoUploader = upload_manager.auto_uploader();
 
-        Ok(writer)
+        let params = AutoUploaderObjectParams::builder()
+            .object_name(name)
+            .file_name(name)
+            .build();
+
+        let res = uploader.async_upload_path(path, params).await?;
+
+        let object_info = serde_json::from_value::<ObjectInfo>(res)?;
+
+        Ok(object_info)
+    }
+
+    pub fn get_object_url(&self, name: &str) -> String {
+        format!("http://{}/{}", self.domain, name)
     }
 
     pub fn into_layer(self) -> Extension<Arc<Self>> {
@@ -141,4 +151,28 @@ pub struct ObjectInfo {
     #[serde(rename = "hash")]
     pub _hash: String,
     pub key: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::env::tests::get_env;
+
+    #[tokio::test]
+    async fn test_storage_client() {
+        let env = get_env();
+        let mut storage_client = StorageClient::new(&env.qiniu_access_key, &env.qiniu_secret_key);
+        storage_client.init_bucket().await.unwrap();
+
+        // read /Users/hlf/Library/CloudStorage/OneDrive-个人/图片/icon.jpg
+        let data =
+            std::fs::read("/Users/hlf/Library/CloudStorage/OneDrive-个人/图片/icon.jpg").unwrap();
+        let object_info = storage_client
+            .upload_object("test_icon.jpg", data)
+            .await
+            .unwrap();
+        println!("Uploaded object key: {}", object_info.key);
+        let url = storage_client.get_object_url(&object_info.key);
+        println!("Object URL: {}", url);
+    }
 }

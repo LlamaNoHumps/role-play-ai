@@ -1,16 +1,24 @@
 mod role_builder;
 mod summarizer;
 
+use std::sync::Arc;
+
 use anyhow::Result;
 use async_openai::config::OpenAIConfig;
+use axum::Extension;
 use llm_chain::{
     options::{ModelRef, Opt, Options},
     parameters, prompt,
 };
 use llm_chain_openai::chatgpt::Executor;
 
+pub use role_builder::RoleBuilder;
+pub use summarizer::Summarizer;
+
+#[derive(Clone)]
 pub struct AI {
     executor: Executor,
+    thinking_executor: Executor,
 }
 
 impl AI {
@@ -22,19 +30,33 @@ impl AI {
 
         let mut options_builder = Options::builder();
         options_builder.add_option(Opt::ApiKey(api_key.to_string()));
+        options_builder.add_option(Opt::Model(ModelRef::from_model_name(
+            "deepseek/deepseek-v3.1-terminus",
+        )));
+        options_builder.add_option(Opt::Stream(false));
+
+        let options = options_builder.build();
+
+        let executor = Executor::for_client(client.clone(), options);
+
+        let mut options_builder = Options::builder();
+        options_builder.add_option(Opt::ApiKey(api_key.to_string()));
         options_builder.add_option(Opt::Model(ModelRef::from_model_name("deepseek-r1-0528")));
         options_builder.add_option(Opt::Stream(false));
 
         let options = options_builder.build();
 
-        let executor = Executor::for_client(client, options);
+        let thinking_executor = Executor::for_client(client, options);
 
-        Self { executor }
+        Self {
+            executor,
+            thinking_executor,
+        }
     }
 
     pub async fn chat_once(&self, system: &str, user: &str) -> Result<String> {
         let res = prompt!(system, "{{user}}")
-            .run(&parameters!("user" => user), &self.executor)
+            .run(&parameters!("user" => user), &self.thinking_executor)
             .await?;
         Ok(res
             .to_immediate()
@@ -43,6 +65,10 @@ impl AI {
             .to_text()
             .trim()
             .to_string())
+    }
+
+    pub fn into_layer(self) -> Extension<Arc<Self>> {
+        Extension(Arc::new(self))
     }
 }
 

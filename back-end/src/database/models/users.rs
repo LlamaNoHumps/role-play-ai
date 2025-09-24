@@ -10,6 +10,7 @@ pub struct Model {
     pub id: i32,
     pub username: String,
     pub password_hash: String,
+    pub image: String,
 }
 
 #[derive(Clone, Debug, EnumIter, DeriveRelation)]

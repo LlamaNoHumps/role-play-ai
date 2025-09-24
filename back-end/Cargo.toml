@@ -67,6 +67,10 @@ mediawiki = { version = "0.3.1", default-features = false }
 llm-chain-openai = { version = "0.13.0", default-features = false }
 llm-chain = { version = "0.13.0", default-features = false }
 async-openai = { version = "0.16.3", default-features = false }
+socketioxide = { version = "0.16.3", default-features = false, features = [
+    "state",
+    "tracing",
+] }
 
 [dev-dependencies]
 dotenv = { version = "0.15.0", default-features = false }

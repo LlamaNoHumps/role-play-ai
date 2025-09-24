@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use super::AI;
 use anyhow::Result;
+use axum::Extension;
 use llm_chain::{parameters, prompt};
 
 pub struct RoleBuilder {
@@ -11,19 +14,42 @@ impl RoleBuilder {
         Self { ai }
     }
 
-    pub async fn build(&self, name: &str) -> Result<String> {
+    pub async fn build(
+        &self,
+        name: &str,
+        description: &str,
+        traits: &str,
+    ) -> Result<(String, String)> {
         let name = self.to_precise_en_title(name).await?;
+        println!("Precise English title: {}", name);
         let extract = wiki_extract(&name).await?;
+        println!("Wiki extract: {}", extract);
 
         let traits = if extract.is_empty() {
-            self.traits_from_prior(&name).await?
+            self.traits_from_prior(&name, description, traits).await?
         } else {
-            self.traits_from_extract(&extract).await?
+            self.traits_from_extract(&extract, description, traits)
+                .await?
         };
 
-        let prompt = self.build_cn_rp_system_prompt(&name, &traits).await?;
+        println!("Extracted traits:\n{}", traits);
 
-        Ok(prompt)
+        let prompt = self.build_cn_rp_system_prompt(&name, &traits).await?;
+        let prompt = prompt.trim_start_matches("Assistant:").trim().to_string();
+
+        println!("Final prompt:\n{}", prompt);
+        let parts: Vec<&str> = prompt.split("<br>").collect();
+        println!("Prompt parts: {:?}", parts);
+
+        if parts.len() == 2 {
+            let description = parts[0].trim().to_string();
+            let traits = parts[1].trim().to_string();
+            Ok((description, traits))
+        } else {
+            Err(anyhow::anyhow!(
+                "Prompt format error: expected 2 parts separated by <br>"
+            ))
+        }
     }
 
     async fn to_precise_en_title(&self, raw_name: &str) -> Result<String> {
@@ -48,9 +74,14 @@ impl RoleBuilder {
             .to_string())
     }
 
-    async fn traits_from_extract(&self, extract_en: &str) -> Result<String> {
+    async fn traits_from_extract(
+        &self,
+        extract_en: &str,
+        description: &str,
+        traits: &str,
+    ) -> Result<String> {
         let sys = r#"
-你是角色设定提炼助手。输入是英文维基导言 extract。
+你是角色设定提炼助手。输入是英文维基导言 extract。用户可能会提供一些描述和特征。
 请用中文输出，提炼适用于“角色扮演”的要点：
 - 人物的性格特质（3-6条）
 - 说话风格/口吻（2-4条）
@@ -59,9 +90,15 @@ impl RoleBuilder {
 输出为简洁条目列表，勿包含与事实无关的推断。
 "#;
 
-        let res = prompt!(sys, "英文 extract：\n{{extract}}\n——\n请中文列要点：")
-            .run(&parameters!("extract" => extract_en), &self.ai.executor)
-            .await?;
+        let res = prompt!(
+            sys,
+            "英文 extract：\n{{extract}}\n描述：{{description}}\n特征：{{traits}}——\n请中文列要点："
+        )
+        .run(
+            &parameters!("extract" => extract_en, "description" => description, "traits" => traits),
+            &self.ai.executor,
+        )
+        .await?;
         Ok(res
             .to_immediate()
             .await?
@@ -71,9 +108,14 @@ impl RoleBuilder {
             .to_string())
     }
 
-    async fn traits_from_prior(&self, person_en: &str) -> Result<String> {
+    async fn traits_from_prior(
+        &self,
+        person_en: &str,
+        description: &str,
+        traits: &str,
+    ) -> Result<String> {
         let sys = r#"
-你是角色设定助手。当前没有百科 extract。
+你是角色设定助手。当前没有百科 extract。用户可能会提供一些描述和特征。
 请基于你对该人物的常识性认知，生成“可用于角色扮演”的风格要点（中文）。
 重要：
 - 避免罗列具体生平事实（因无来源），只描述可泛化的“性格/口吻/话题/互动风格”。
@@ -81,9 +123,15 @@ impl RoleBuilder {
 - 结构与粒度同：性格特质/说话风格/典型话题/注意事项。
 "#;
 
-        let res = prompt!(sys, "人物英文名：{{name}}\n请中文列要点：")
-            .run(&parameters!("name" => person_en), &self.ai.executor)
-            .await?;
+        let res = prompt!(
+            sys,
+            "人物英文名：{{name}}\n描述：{{description}}\n特征：{{traits}}\n请中文列要点："
+        )
+        .run(
+            &parameters!("name" => person_en, "description" => description, "traits" => traits),
+            &self.ai.executor,
+        )
+        .await?;
         Ok(res
             .to_immediate()
             .await?
@@ -102,6 +150,7 @@ impl RoleBuilder {
 - 给出 3 条示例口癖或措辞模板（中文）。
 - 控制在 250~400 字，适合作为 system。
 - 只输出提示词部分。
+- 人物设定这一段需要与后面的其余部分用<br>分开。
 "#;
 
         let res = prompt!(
@@ -120,6 +169,10 @@ impl RoleBuilder {
             .to_text()
             .trim()
             .to_string())
+    }
+
+    pub fn into_layer(self) -> Extension<Arc<Self>> {
+        Extension(Arc::new(self))
     }
 }
 
@@ -162,7 +215,14 @@ mod tests {
         let ai = AI::new(&env.qiniu_ai_api_key);
 
         let role_builder = RoleBuilder::new(ai);
-        let prompt = role_builder.build("Albert Einstein").await.unwrap();
-        println!("Prompt:\n{}", prompt);
+        let (description, traits) = role_builder.build("Albert Einstein", "", "").await.unwrap();
+        println!("description:\n{}\n{}", description, traits);
+    }
+
+    #[tokio::test]
+    async fn test_wiki_extract() {
+        let title = "Albert Einstein";
+        let extract = wiki_extract(title).await.unwrap();
+        println!("Extract for {}:\n{}", title, extract);
     }
 }
