@@ -372,6 +372,26 @@ impl Database {
             .join("\n");
         Ok(history)
     }
+
+    pub async fn delete_conversation(&self, user_id: i32, role_id: i32) -> Result<()> {
+        let table_name = format!("conv_{}_{}", user_id, role_id);
+        let drop_sql = format!("DROP TABLE IF EXISTS `{}`", table_name);
+
+        self.connection
+            .execute(sea_orm::Statement::from_string(
+                self.connection.get_database_backend(),
+                drop_sql,
+            ))
+            .await?;
+
+        models::conversations::Entity::delete_many()
+            .filter(models::conversations::Column::UserId.eq(user_id))
+            .filter(models::conversations::Column::RoleId.eq(role_id))
+            .exec(&self.connection)
+            .await?;
+
+        Ok(())
+    }
 }
 
 fn generate_jwt_secret() -> String {
