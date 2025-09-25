@@ -3,6 +3,7 @@ pub mod models;
 pub mod status;
 
 use anyhow::Result;
+use chrono::Utc;
 use models::roles::{Column, Entity, Gender, VoiceType};
 use sea_orm::{
     ActiveValue::{self, Set},
@@ -105,6 +106,7 @@ impl Database {
             id: ActiveValue::default(),
             user_id: Set(user_id),
             role_id: Set(role_id),
+            last_dialog_timestamp: Set(Utc::now().timestamp()),
         };
 
         models::conversations::Entity::insert(conversation)
@@ -124,7 +126,7 @@ impl Database {
 
         let paginator = models::conversations::Entity::find()
             .filter(models::conversations::Column::UserId.eq(user_id))
-            .order_by_desc(models::conversations::Column::Id)
+            .order_by_desc(models::conversations::Column::LastDialogTimestamp)
             .paginate(&self.connection, limit as u64);
 
         let num_pages = paginator.num_pages().await?;
@@ -139,6 +141,25 @@ impl Database {
             total: total as i64,
             has_more,
         })
+    }
+
+    pub async fn update_conversation_last_dialog_timestamp(
+        &self,
+        user_id: i32,
+        role_id: i32,
+        timestamp: i64,
+    ) -> Result<()> {
+        models::conversations::Entity::update_many()
+            .col_expr(
+                models::conversations::Column::LastDialogTimestamp,
+                Expr::value(timestamp),
+            )
+            .filter(models::conversations::Column::UserId.eq(user_id))
+            .filter(models::conversations::Column::RoleId.eq(role_id))
+            .exec(&self.connection)
+            .await?;
+
+        Ok(())
     }
 
     pub async fn list_dialogs(
@@ -253,6 +274,9 @@ impl Database {
                     sea_orm::Value::from(voice),
                 ],
             ))
+            .await?;
+
+        self.update_conversation_last_dialog_timestamp(user_id, role_id, timestamp)
             .await?;
 
         Ok(res.last_insert_id() as i32)
