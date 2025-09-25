@@ -11,6 +11,7 @@ pub struct Model {
     pub username: String,
     pub password_hash: String,
     pub image: String,
+    pub jwt_secret: String,
 }
 
 #[derive(Clone, Debug, EnumIter, DeriveRelation)]

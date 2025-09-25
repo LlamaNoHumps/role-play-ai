@@ -1,4 +1,4 @@
-use crate::{database::Database, error::HttpError};
+use crate::{auth::create_token, database::Database, error::HttpError};
 use axum::{
     Extension, Json,
     http::StatusCode,
@@ -22,15 +22,20 @@ pub async fn handler(
             if verified {
                 let user = database.get_user(&data.username).await.unwrap();
 
-                (
-                    StatusCode::OK,
-                    Json(ResponseData {
-                        user_id: user.id,
-                        username: data.username,
-                        image_url: user.image,
-                    }),
-                )
-                    .into_response()
+                match create_token(user.id, user.username.clone(), &user.jwt_secret) {
+                    Ok(token) => (
+                        StatusCode::OK,
+                        Json(ResponseData {
+                            user_id: user.id,
+                            username: user.username,
+                            image_url: user.image,
+                            token,
+                        }),
+                    )
+                        .into_response(),
+                    Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Failed to create token")
+                        .into_response(),
+                }
             } else {
                 (StatusCode::UNAUTHORIZED, "Invalid username or password").into_response()
             }
@@ -53,4 +58,5 @@ pub struct ResponseData {
     username: String,
     #[serde(rename = "avatar")]
     image_url: String,
+    token: String,
 }

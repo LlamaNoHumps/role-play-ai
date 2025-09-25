@@ -170,6 +170,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            position: relative;
         }
 
         .user-avatar {
@@ -182,6 +183,57 @@
             justify-content: center;
             color: white;
             font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .user-avatar:hover {
+            transform: scale(1.05);
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 150px;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.2s ease;
+        }
+
+        .user-dropdown.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f5f5f5;
+            transition: background-color 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item.logout {
+            color: #e74c3c;
+        }
+
+        .dropdown-item.logout:hover {
+            background-color: #ffeaea;
         }
 
         .welcome-text {
@@ -1730,8 +1782,14 @@
             <div class="header">
                 <div class="user-info" id="userInfo">
                     <!-- 已登录状态 -->
-                    <div class="user-avatar">用</div>
-                    <span class="welcome-text">欢迎，用户名</span>
+                    <div class="user-avatar" id="userAvatar" onclick="toggleUserDropdown()">用</div>
+                    <span class="welcome-text" id="welcomeText">欢迎，用户名</span>
+
+                    <!-- 用户下拉菜单 -->
+                    <div class="user-dropdown" id="userDropdown">
+                        <div class="dropdown-item" onclick="showUserProfile()">个人资料</div>
+                        <div class="dropdown-item logout" onclick="logout()">退出登录</div>
+                    </div>
 
                     <!-- 未登录状态 -->
                     <!-- <button class="login-btn" onclick="login()">登录</button> -->
@@ -2469,15 +2527,61 @@
                 }
 
                 userInfo.innerHTML = `
-                    <div class="user-avatar">${avatarElement}</div>
+                    <div class="user-avatar" id="userAvatar" onclick="toggleUserDropdown()">${avatarElement}</div>
                     <span class="welcome-text">欢迎，${currentUser.name}</span>
+                    <div class="user-dropdown" id="userDropdown">
+                        <div class="dropdown-item" onclick="showUserProfile()">个人资料</div>
+                        <div class="dropdown-item logout" onclick="logout()">退出登录</div>
+                    </div>
                 `;
             } else {
                 userInfo.innerHTML = `
                     <button class="login-btn" onclick="login()">登录</button>
                 `;
             }
-        }        // 渲染角色卡片
+        }
+
+        // 用户下拉菜单控制
+        function toggleUserDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        // 显示用户资料（暂时用alert代替）
+        function showUserProfile() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.remove('show');
+            alert('个人资料功能待实现');
+        }
+
+        // 退出登录
+        function logout() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.remove('show');
+
+            // 清除本地存储
+            localStorage.removeItem('authToken');
+
+            // 重置登录状态
+            isLoggedIn = false;
+            currentUser = { id: null, name: '', avatar: '' };
+
+            // 更新UI
+            updateUserInfo();
+
+            // 重新加载页面数据
+            loadRoles();
+            document.getElementById('chatList').innerHTML = '<div class="no-chats">登录后查看对话记录</div>';
+
+            // 如果当前在聊天页面，返回主页
+            if (currentPage === 'chat') {
+                showHomePage();
+            }
+
+            alert('已退出登录');
+        }
+
+        // 渲染角色卡片
         function renderRoles(rolesToRender) {
             const rolesGrid = document.getElementById('rolesGrid');
             if (rolesToRender.length === 0) {
@@ -3377,6 +3481,16 @@
             document.getElementById('authModal').addEventListener('click', function (e) {
                 if (e.target === this) {
                     closeAuthModal();
+                }
+            });
+
+            // 点击其他地方关闭用户下拉菜单
+            document.addEventListener('click', function (event) {
+                const userInfo = document.getElementById('userInfo');
+                const dropdown = document.getElementById('userDropdown');
+
+                if (userInfo && dropdown && !userInfo.contains(event.target)) {
+                    dropdown.classList.remove('show');
                 }
             });
 

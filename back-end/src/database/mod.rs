@@ -34,11 +34,14 @@ impl Database {
     }
 
     pub async fn add_user(&self, username: &str, password_hash: &str, image: &str) -> Result<i32> {
+        let jwt_secret = generate_jwt_secret();
+
         let user = models::users::ActiveModel {
             id: ActiveValue::default(),
             username: Set(username.to_string()),
             password_hash: Set(password_hash.to_string()),
             image: Set(image.to_string()),
+            jwt_secret: Set(jwt_secret),
         };
 
         let res = models::users::Entity::insert(user)
@@ -250,4 +253,13 @@ impl Database {
             .join("\n");
         Ok(history)
     }
+}
+
+fn generate_jwt_secret() -> String {
+    use uuid::Uuid;
+    format!(
+        "{}_{}",
+        Uuid::new_v4().to_string().replace('-', ""),
+        chrono::Utc::now().timestamp()
+    )
 }
