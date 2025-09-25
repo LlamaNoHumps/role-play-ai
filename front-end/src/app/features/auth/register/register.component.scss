@@ -1,0 +1,17 @@
+/* 样式可以保持和 Angular Material 一致，如果需要定制按需修改 */
+
+.w100 {
+  width: 100%;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+mat-card {
+  padding: 16px;
+}
+
+mat-error {
+  color: red;
+}

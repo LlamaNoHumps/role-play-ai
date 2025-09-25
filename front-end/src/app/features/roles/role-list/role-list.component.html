@@ -1,1 +1,29 @@
-<p>role-list works!</p>
+<div style="padding:16px">
+  <!-- <button mat-raised-button color="primary" routerLink="/roles/generate">生成角色</button> -->
+   <button class="custom-btn" routerLink="/roles/generate">
+  生成角色
+</button>
+</div>
+<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:12px; padding:16px">
+  <!-- <mat-card *ngFor="let r of roles">
+    <mat-card-title>{{ r.name }}</mat-card-title>
+    <mat-card-content>
+      <p>{{ r.persona }}</p>
+    </mat-card-content>
+    <a mat-button color="accent" [routerLink]="['/chat']" [queryParams]="{ roleId: r.id }">与该角色聊天</a>
+  </mat-card> -->
+<div class="role-card-container">
+  <div class="role-card" *ngFor="let r of roles">
+    <div class="card-header">
+      <h2 class="card-title">{{ r.name }}</h2>
+    </div>
+    <div class="card-content">
+      <p>{{ r.persona }}</p>
+    </div>
+    <div class="card-footer">
+      <!-- <a class="chat-button" [routerLink]="['/chat']" [queryParams]="{ roleId: r.id }">与该角色聊天</a> -->
+    </div>
+  </div>
+</div>
+
+</div>

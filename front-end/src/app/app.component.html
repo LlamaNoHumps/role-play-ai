@@ -177,7 +177,7 @@
   }
 </style>
 
-<main class="main">
+<!-- <main class="main">
   <div class="content">
     <div class="left-side">
       <svg
@@ -322,7 +322,7 @@
       </div>
     </div>
   </div>
-</main>
+</main> -->
 
 <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
 <!-- * * * * * * * * * * * The content above * * * * * * * * * * * * -->
@@ -331,6 +331,24 @@
 <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
 <!-- * * * * * * * * * * End of Placeholder  * * * * * * * * * * * * -->
 <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * -->
+<mat-toolbar color="primary">
+  <span class="title">AI RolePlay</span>
+  <span class="spacer"></span>
+  <button mat-button routerLink="/roles">角色</button>
+  <button mat-button routerLink="/chat">对话</button>
+  <!-- <ng-container *ngIf="!auth.isAuthenticated(); else authed"> -->
+    <ng-container>
+    <button mat-button routerLink="/auth/login">登录</button>
+    <button mat-button routerLink="/auth/register">注册</button>
+  </ng-container>
+  <ng-template #authed>
+    <button mat-button [matMenuTriggerFor]="menu">{{auth.profile?.displayName || '用户'}}</button>
+    <mat-menu #menu="matMenu">
+      <button mat-menu-item (click)="logout()">退出登录</button>
+    </mat-menu>
+  </ng-template>
+</mat-toolbar>
+
 
 
 <router-outlet />

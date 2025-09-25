@@ -1,17 +1,42 @@
 <mat-card>
   <h2>登录</h2>
-  <form (ngSubmit)="submit()">
+  <form (ngSubmit)="onSubmit()" #loginForm="ngForm">
     <mat-form-field appearance="outline" class="w100">
       <mat-label>Email</mat-label>
-      <input matInput [(ngModel)]="email" name="email" required>
+      <input matInput
+             [(ngModel)]="email"
+             name="email"
+             type="email"
+             required
+             #emailInput="ngModel">
+      <mat-error *ngIf="emailInput.invalid && emailInput.touched">
+        请输入有效的邮箱
+      </mat-error>
     </mat-form-field>
+
     <mat-form-field appearance="outline" class="w100">
       <mat-label>密码</mat-label>
-      <input matInput [(ngModel)]="password" name="password" type="password" required>
+      <input matInput
+             [(ngModel)]="password"
+             name="password"
+             type="password"
+             required
+             #passwordInput="ngModel">
+      <mat-error *ngIf="passwordInput.invalid && passwordInput.touched">
+        请输入密码
+      </mat-error>
     </mat-form-field>
-    <button mat-raised-button color="primary" [disabled]="loading">登录</button>
+
+    <!-- 错误提示 -->
+    <div *ngIf="errorMsg" class="error-msg" style="color: red; margin: 8px 0;">
+      {{ errorMsg }}
+    </div>
+
+    <button mat-raised-button color="primary" [disabled]="loading">
+      {{ loading ? '登录中...' : '登录' }}
+    </button>
+
     <a routerLink="/auth/register" style="margin-left:12px">去注册</a>
-    <p>{{msg}}</p>
   </form>
 </mat-card>
 
