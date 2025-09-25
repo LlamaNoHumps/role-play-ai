@@ -116,6 +116,10 @@ pub async fn run() {
             handlers::conversation::dialogs::PATH,
             get(handlers::conversation::dialogs::handler),
         )
+        .route(
+            handlers::conversation::delete::PATH,
+            post(handlers::conversation::delete::handler),
+        )
         .layer(middleware::from_fn(trace_middleware))
         .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
         .layer(Extension(storage_client))
