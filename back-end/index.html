@@ -198,6 +198,43 @@
             background: white;
             border: 1px solid #e1e8ed;
             border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 150px;
+            z-index: 1000;
+        }
+
+        /* Loading 指示器样式 */
+        .loading-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e1e8ed;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .user-dropdown {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             min-width: 150px;
             z-index: 1000;
@@ -1773,6 +1810,10 @@
                 <div id="chatList">
                     <div class="no-chats">登录后查看对话记录</div>
                 </div>
+                <div id="chatsLoading" class="loading-indicator" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <div>加载更多对话...</div>
+                </div>
             </div>
         </div>
 
@@ -1810,54 +1851,11 @@
             <!-- 角色卡片区域 -->
             <div class="content-area">
                 <div class="roles-grid" id="rolesGrid">
-                    <!-- 示例角色卡片 -->
-                    <div class="role-card" onclick="selectRole('princess')">
-                        <div class="role-image">👑</div>
-                        <div class="role-info">
-                            <div class="role-name">艾莉娅公主</div>
-                            <div class="role-description">来自魔法王国的优雅公主，善良聪慧，拥有强大的魔法力量</div>
-                        </div>
-                    </div>
-
-                    <div class="role-card" onclick="selectRole('assistant')">
-                        <div class="role-image">🤖</div>
-                        <div class="role-info">
-                            <div class="role-name">智能助手</div>
-                            <div class="role-description">专业的AI助手，可以帮助您解决各种问题和提供建议</div>
-                        </div>
-                    </div>
-
-                    <div class="role-card" onclick="selectRole('catgirl')">
-                        <div class="role-image">🐱</div>
-                        <div class="role-info">
-                            <div class="role-name">猫娘女仆</div>
-                            <div class="role-description">可爱的猫娘女仆，温柔体贴，会照顾主人的日常生活</div>
-                        </div>
-                    </div>
-
-                    <div class="role-card" onclick="selectRole('detective')">
-                        <div class="role-image">🕵️</div>
-                        <div class="role-info">
-                            <div class="role-name">名侦探</div>
-                            <div class="role-description">敏锐的观察力和逻辑思维，擅长解决各种神秘案件</div>
-                        </div>
-                    </div>
-
-                    <div class="role-card" onclick="selectRole('wizard')">
-                        <div class="role-image">🧙‍♂️</div>
-                        <div class="role-info">
-                            <div class="role-name">古老法师</div>
-                            <div class="role-description">拥有千年智慧的法师，掌握着古老而强大的魔法知识</div>
-                        </div>
-                    </div>
-
-                    <div class="role-card" onclick="selectRole('teacher')">
-                        <div class="role-image">👩‍🏫</div>
-                        <div class="role-info">
-                            <div class="role-name">温柔老师</div>
-                            <div class="role-description">耐心温和的老师，擅长教学和引导学生思考</div>
-                        </div>
-                    </div>
+                    <!-- 动态加载的角色将显示在这里 -->
+                </div>
+                <div id="rolesLoading" class="loading-indicator" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <div>加载更多角色...</div>
                 </div>
             </div>
 
@@ -1867,8 +1865,8 @@
                     <h2 class="page-title">创建新角色</h2>
                     <button class="back-btn" onclick="backToHome()">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path
-                                d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm3.5 6L9.207 7.293a1 1 0 0 0 0 1.414L11.5 10l-.707.707L9.207 9.121a1 1 0 0 0-1.414 0L6.207 10.707L5.5 10l2.293-1.586a1 1 0 0 0 0-1.414L5.5 6l.707-.707L7.793 6.879a1 1 0 0 0 1.414 0L11.5 5.293 11.5 6z" />
+                            <path fill-rule="evenodd"
+                                d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
                         </svg>
                         返回
                     </button>
@@ -1889,27 +1887,38 @@
                                 <div class="role-default-avatar selected" data-avatar="🎭"
                                     onclick="chooseRoleDefaultAvatar('🎭')">🎭</div>
                                 <div class="role-default-avatar" data-avatar="👑"
-                                    onclick="chooseRoleDefaultAvatar('👑')">👑</div>
+                                    onclick="chooseRoleDefaultAvatar('👑')">👑
+                                </div>
                                 <div class="role-default-avatar" data-avatar="🦸"
-                                    onclick="chooseRoleDefaultAvatar('🦸')">🦸</div>
+                                    onclick="chooseRoleDefaultAvatar('🦸')">🦸
+                                </div>
                                 <div class="role-default-avatar" data-avatar="🧙"
-                                    onclick="chooseRoleDefaultAvatar('🧙')">🧙</div>
+                                    onclick="chooseRoleDefaultAvatar('🧙')">🧙
+                                </div>
                                 <div class="role-default-avatar" data-avatar="🐱"
-                                    onclick="chooseRoleDefaultAvatar('🐱')">🐱</div>
+                                    onclick="chooseRoleDefaultAvatar('🐱')">🐱
+                                </div>
                                 <div class="role-default-avatar" data-avatar="🤖"
-                                    onclick="chooseRoleDefaultAvatar('🤖')">🤖</div>
+                                    onclick="chooseRoleDefaultAvatar('🤖')">🤖
+                                </div>
                                 <div class="role-default-avatar" data-avatar="🦄"
-                                    onclick="chooseRoleDefaultAvatar('🦄')">🦄</div>
+                                    onclick="chooseRoleDefaultAvatar('🦄')">🦄
+                                </div>
                                 <div class="role-default-avatar" data-avatar="🐶"
-                                    onclick="chooseRoleDefaultAvatar('🐶')">🐶</div>
+                                    onclick="chooseRoleDefaultAvatar('🐶')">🐶
+                                </div>
                                 <div class="role-default-avatar" data-avatar="🦊"
-                                    onclick="chooseRoleDefaultAvatar('🦊')">🦊</div>
+                                    onclick="chooseRoleDefaultAvatar('🦊')">🦊
+                                </div>
                                 <div class="role-default-avatar" data-avatar="🐼"
-                                    onclick="chooseRoleDefaultAvatar('🐼')">🐼</div>
+                                    onclick="chooseRoleDefaultAvatar('🐼')">🐼
+                                </div>
                                 <div class="role-default-avatar" data-avatar="👨‍🎓"
-                                    onclick="chooseRoleDefaultAvatar('👨‍🎓')">👨‍🎓</div>
+                                    onclick="chooseRoleDefaultAvatar('👨‍🎓')">
+                                    👨‍🎓</div>
                                 <div class="role-default-avatar" data-avatar="👩‍🏫"
-                                    onclick="chooseRoleDefaultAvatar('👩‍🏫')">👩‍🏫</div>
+                                    onclick="chooseRoleDefaultAvatar('👩‍🏫')">
+                                    👩‍🏫</div>
                             </div>
                         </div>
 
@@ -1984,39 +1993,44 @@
                     </form>
                 </div>
             </div>
-        </div>
 
-        <!-- 聊天页面 -->
-        <div class="create-role-page" id="chatPageNew">
-            <div class="create-role-header">
-                <h2 class="page-title" id="currentRoleNameNew">选择一个角色开始对话</h2>
-                <button class="back-btn" onclick="backToHome()">返回主页</button>
-            </div>
-
-            <div class="chat-content">
-                <div class="chat-messages" id="chatMessagesNew">
-                    <div class="chat-empty" id="chatEmptyNew">
-                        <div class="chat-empty-icon">💬</div>
-                        <div class="chat-empty-text">还没有聊天记录</div>
-                        <div class="chat-empty-hint">选择一个角色开始有趣的对话吧！</div>
-                    </div>
+            <!-- 聊天页面 -->
+            <div class="create-role-page" id="chatPageNew">
+                <div class="create-role-header">
+                    <h2 class="page-title" id="currentRoleNameNew">选择一个角色开始对话</h2>
+                    <button class="back-btn" onclick="backToHome()">返回主页</button>
                 </div>
 
-                <div class="chat-input">
-                    <textarea class="message-input" id="messageInputNew" placeholder="输入消息..." rows="1"
-                        onkeydown="handleInputKeydown(event)" oninput="adjustTextareaHeight(this)"></textarea>
-                    <button class="voice-btn" id="voiceBtnNew" onclick="startVoiceInput()" title="语音输入">
-                        🎤
-                    </button>
-                    <button class="send-btn" id="sendBtnNew" onclick="sendMessage()" title="发送消息" disabled>
-                        ➤
-                    </button>
+                <div class="chat-content">
+                    <div class="chat-messages" id="chatMessagesNew">
+                        <div class="chat-empty" id="chatEmptyNew">
+                            <div class="chat-empty-icon">💬</div>
+                            <div class="chat-empty-text">还没有聊天记录</div>
+                            <div class="chat-empty-hint">选择一个角色开始有趣的对话吧！</div>
+                        </div>
+                        <div id="dialogsLoading" class="loading-indicator" style="display: none;">
+                            <div class="loading-spinner"></div>
+                            <div>加载更多消息...</div>
+                        </div>
+                    </div>
+
+                    <div class="chat-input">
+                        <textarea class="message-input" id="messageInputNew" placeholder="输入消息..." rows="1"
+                            onkeydown="handleInputKeydown(event)" oninput="adjustTextareaHeight(this)"></textarea>
+                        <button class="voice-btn" id="voiceBtnNew" onclick="startVoiceInput()" title="语音输入">
+                            🎤
+                        </button>
+                        <button class="send-btn" id="sendBtnNew" onclick="sendMessage()" title="发送消息" disabled>
+                            ➤
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 登录/注册模态框 -->
+    <!-- 创建角色页面 -->
+
     <div class="modal-overlay" id="authModal">
         <div class="auth-modal">
             <button class="modal-close" onclick="closeAuthModal()">
@@ -2335,10 +2349,52 @@
         // 角色数据
         let roles = [];
 
-        // 加载角色列表
-        async function loadRoles() {
+        // 懒加载状态
+        const lazyLoadState = {
+            roles: {
+                offset: 0,
+                limit: 15,
+                loading: false,
+                hasMore: true,
+                total: 0
+            },
+            conversations: {
+                offset: 0,
+                limit: 15,
+                loading: false,
+                hasMore: true,
+                total: 0
+            },
+            dialogs: {
+                offset: 0,
+                limit: 20,
+                loading: false,
+                hasMore: true,
+                total: 0
+            }
+        };
+
+        // 加载角色列表（懒加载版本）
+        async function loadRoles(append = false) {
+            if (lazyLoadState.roles.loading) return;
+
             try {
-                const response = await fetch('/api/role/list', {
+                lazyLoadState.roles.loading = true;
+
+                if (!append) {
+                    // 重置数据
+                    roles = [];
+                    lazyLoadState.roles.offset = 0;
+                    lazyLoadState.roles.hasMore = true;
+                }
+
+                if (!lazyLoadState.roles.hasMore) {
+                    lazyLoadState.roles.loading = false;
+                    return;
+                }
+
+                const url = `/api/role/list?offset=${lazyLoadState.roles.offset}&limit=${lazyLoadState.roles.limit}`;
+                const response = await fetch(url, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('authToken')}`
@@ -2348,29 +2404,52 @@
                 if (response.ok) {
                     const data = await response.json();
                     console.log('角色列表数据:', data);
-                    if (Array.isArray(data)) {
-                        roles = data.map(role => ({
-                            id: String(role.role_id), // 确保ID始终是字符串
+
+                    if (data && data.items && Array.isArray(data.items)) {
+                        const newRoles = data.items.map(role => ({
+                            id: String(role.role_id),
                             name: role.name,
                             description: role.description,
                             traits: role.traits,
                             image_url: role.image_url,
-                            // 兼容性：如果image_url是emoji，设置emoji字段
                             emoji: isEmoji(role.image_url) ? role.image_url : null
                         }));
+
+                        if (append) {
+                            roles.push(...newRoles);
+                            // 渲染新角色（追加模式）
+                            renderRoles(newRoles, true);
+                        } else {
+                            roles = newRoles;
+                            // 渲染所有角色（替换模式）
+                            renderRoles(roles, false);
+                        }
+
+                        lazyLoadState.roles.total = data.total;
+                        lazyLoadState.roles.hasMore = data.has_more;
+                        lazyLoadState.roles.offset += lazyLoadState.roles.limit;
                     } else {
-                        console.warn('角色列表格式错误，期望数组但收到:', data);
-                        roles = [];
+                        console.warn('角色列表格式错误:', data);
+                        if (!append) {
+                            roles = [];
+                            lazyLoadState.roles.hasMore = false;
+                        }
                     }
                 } else {
                     console.warn('获取角色列表失败:', response.status);
-                    // 如果未登录或API不可用，使用默认角色数据
-                    roles = getDefaultRoles();
+                    if (!append) {
+                        roles = [];
+                        lazyLoadState.roles.hasMore = false;
+                    }
                 }
             } catch (error) {
                 console.error('加载角色列表错误:', error);
-                // 网络错误时使用默认角色数据
-                roles = getDefaultRoles();
+                if (!append) {
+                    roles = [];
+                    lazyLoadState.roles.hasMore = false;
+                }
+            } finally {
+                lazyLoadState.roles.loading = false;
             }
         }
 
@@ -2501,7 +2580,6 @@
 
             updateUserInfo();
             await loadRoles();
-            renderRoles(roles);
 
             // 如果已登录，加载最近对话
             if (isLoggedIn) {
@@ -2584,10 +2662,156 @@
             alert('已退出登录');
         }
 
+        // 初始化滚动监听器
+        function initScrollListeners() {
+            // 角色内容区域滚动监听（角色懒加载）
+            const contentArea = document.querySelector('.content-area');
+            if (contentArea) {
+                contentArea.addEventListener('scroll', function () {
+                    if (getCurrentPage() === 'home') {
+                        handleMainContentScroll();
+                    }
+                });
+            }
+
+            // 侧边栏对话列表滚动监听
+            const recentChats = document.querySelector('.recent-chats');
+            if (recentChats) {
+                recentChats.addEventListener('scroll', function () {
+                    handleChatListScroll();
+                });
+            }
+
+            // 聊天消息区域滚动监听
+            const chatMessages = document.getElementById('chatMessagesNew');
+            if (chatMessages) {
+                chatMessages.addEventListener('scroll', function () {
+                    if (getCurrentPage() === 'chat') {
+                        handleChatMessagesScroll();
+                    }
+                });
+            }
+        }
+
+        // 处理主内容区域滚动（角色懒加载）
+        function handleMainContentScroll() {
+            const contentArea = document.querySelector('.content-area');
+            const scrollTop = contentArea.scrollTop;
+            const scrollHeight = contentArea.scrollHeight;
+            const clientHeight = contentArea.clientHeight;
+
+            console.log('角色区域滚动检测:', {
+                scrollTop, scrollHeight, clientHeight,
+                distance: scrollHeight - scrollTop - clientHeight,
+                loading: lazyLoadState.roles.loading,
+                hasMore: lazyLoadState.roles.hasMore
+            });
+
+            // 距离底部100px时开始加载更多
+            if (scrollHeight - scrollTop - clientHeight < 100 && !lazyLoadState.roles.loading && lazyLoadState.roles.hasMore) {
+                console.log('触发角色懒加载');
+                showLoadingIndicator('roles');
+                loadRoles(true).finally(() => {
+                    hideLoadingIndicator('roles');
+                });
+            }
+        }
+
+        // 处理对话列表滚动
+        function handleChatListScroll() {
+            const recentChats = document.querySelector('.recent-chats');
+            const scrollTop = recentChats.scrollTop;
+            const scrollHeight = recentChats.scrollHeight;
+            const clientHeight = recentChats.clientHeight;
+
+            console.log('对话列表滚动检测:', {
+                scrollTop, scrollHeight, clientHeight,
+                distance: scrollHeight - scrollTop - clientHeight,
+                loading: lazyLoadState.conversations.loading,
+                hasMore: lazyLoadState.conversations.hasMore
+            });
+
+            if (scrollHeight - scrollTop - clientHeight < 50 && !lazyLoadState.conversations.loading && lazyLoadState.conversations.hasMore) {
+                console.log('触发对话懒加载');
+                showLoadingIndicator('chats');
+                loadRecentChats(true).then(() => {
+                    hideLoadingIndicator('chats');
+                });
+            }
+        }
+
+        // 处理聊天消息滚动
+        function handleChatMessagesScroll() {
+            const chatMessagesElement = document.getElementById('chatMessagesNew');
+            const scrollTop = chatMessagesElement.scrollTop;
+
+            // 在顶部时加载更早的消息（聊天记录是从上往下滚动看历史消息）
+            if (scrollTop < 100 && !lazyLoadState.dialogs.loading && lazyLoadState.dialogs.hasMore && currentChatRole) {
+                showLoadingIndicator('dialogs');
+                const currentScrollHeight = chatMessagesElement.scrollHeight;
+
+                loadChatDialogs(currentChatRole.id, true).then((newMessages) => {
+                    if (newMessages.length > 0) {
+                        // 将新消息添加到数组前面（历史消息在前）
+                        chatMessages = [...newMessages, ...chatMessages];
+                        renderChatMessages();
+
+                        // 保持滚动位置
+                        const newScrollHeight = chatMessagesElement.scrollHeight;
+                        chatMessagesElement.scrollTop = newScrollHeight - currentScrollHeight;
+                    }
+                    hideLoadingIndicator('dialogs');
+                });
+            }
+        }
+
+        // 显示加载指示器
+        function showLoadingIndicator(type) {
+            const indicators = {
+                'roles': 'rolesLoading',
+                'chats': 'chatsLoading',
+                'dialogs': 'dialogsLoading'
+            };
+
+            const elementId = indicators[type];
+            if (elementId) {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.style.display = 'flex';
+                }
+            }
+        }
+
+        // 隐藏加载指示器
+        function hideLoadingIndicator(type) {
+            const indicators = {
+                'roles': 'rolesLoading',
+                'chats': 'chatsLoading',
+                'dialogs': 'dialogsLoading'
+            };
+
+            const elementId = indicators[type];
+            if (elementId) {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.style.display = 'none';
+                }
+            }
+        }
+
+        // 获取当前页面
+        function getCurrentPage() {
+            const hash = window.location.hash;
+            if (hash.startsWith('#chat/')) return 'chat';
+            if (hash === '#create-role') return 'create-role';
+            return 'home';
+        }
+
         // 渲染角色卡片
-        function renderRoles(rolesToRender) {
+        function renderRoles(rolesToRender, append = false) {
             const rolesGrid = document.getElementById('rolesGrid');
-            if (rolesToRender.length === 0) {
+
+            if (!append && rolesToRender.length === 0) {
                 rolesGrid.innerHTML = `
                     <div class="empty-state" style="grid-column: 1 / -1;">
                         <div class="empty-icon">🔍</div>
@@ -2597,7 +2821,7 @@
                 return;
             }
 
-            rolesGrid.innerHTML = rolesToRender.map(role => {
+            const roleCardsHtml = rolesToRender.map(role => {
                 // 处理角色图片显示
                 let roleImageContent = '';
                 if (role.image_url) {
@@ -2631,6 +2855,12 @@
                     </div>
                 `;
             }).join('');
+
+            if (append) {
+                rolesGrid.innerHTML += roleCardsHtml;
+            } else {
+                rolesGrid.innerHTML = roleCardsHtml;
+            }
         }
 
         // 搜索角色
@@ -3612,6 +3842,9 @@
             document.getElementById('registerForm').addEventListener('submit', handleRegister);
             document.getElementById('roleForm').addEventListener('submit', handleRoleCreate);
 
+            // 初始化懒加载滚动监听
+            initScrollListeners();
+
             // 消息输入框事件监听
             const messageInput = document.getElementById('messageInputNew');
             if (messageInput) {
@@ -3674,10 +3907,25 @@
             }
         }
 
-        // 获取用户的对话列表
-        async function loadRecentChats() {
+        // 获取用户的对话列表（懒加载版本）
+        async function loadRecentChats(append = false) {
+            if (lazyLoadState.conversations.loading || !currentUser?.id) return;
+
             try {
-                const response = await fetch(`/api/conversation/list?user_id=${parseInt(currentUser.id)}`, {
+                lazyLoadState.conversations.loading = true;
+
+                if (!append) {
+                    lazyLoadState.conversations.offset = 0;
+                    lazyLoadState.conversations.hasMore = true;
+                }
+
+                if (!lazyLoadState.conversations.hasMore) {
+                    lazyLoadState.conversations.loading = false;
+                    return;
+                }
+
+                const url = `/api/conversation/list?user_id=${parseInt(currentUser.id)}&offset=${lazyLoadState.conversations.offset}&limit=${lazyLoadState.conversations.limit}`;
+                const response = await fetch(url, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('authToken')}`
@@ -3688,18 +3936,28 @@
                     throw new Error('获取对话列表失败');
                 }
 
-                const roleIds = await response.json();
-                await renderRecentChats(roleIds);
+                const data = await response.json();
+                console.log('对话列表数据:', data);
+
+                if (data && data.items && Array.isArray(data.items)) {
+                    lazyLoadState.conversations.total = data.total;
+                    lazyLoadState.conversations.hasMore = data.has_more;
+                    lazyLoadState.conversations.offset += lazyLoadState.conversations.limit;
+
+                    await renderRecentChats(data.items, append);
+                }
             } catch (error) {
                 console.error('加载最近对话错误:', error);
+            } finally {
+                lazyLoadState.conversations.loading = false;
             }
         }
 
         // 渲染最近对话列表
-        async function renderRecentChats(roleIds) {
+        async function renderRecentChats(roleIds, append = false) {
             const chatListElement = document.getElementById('chatList');
 
-            if (roleIds.length === 0) {
+            if (!append && roleIds.length === 0) {
                 chatListElement.innerHTML = '<div class="no-chats">还没有对话记录</div>';
                 return;
             }
@@ -3734,13 +3992,32 @@
                 `;
             }).filter(item => item).join('');
 
-            chatListElement.innerHTML = chatItems;
+            if (append) {
+                chatListElement.innerHTML += chatItems;
+            } else {
+                chatListElement.innerHTML = chatItems;
+            }
         }
 
-        // 获取对话的聊天记录
-        async function loadChatDialogs(roleId) {
+        // 获取对话的聊天记录（懒加载版本）
+        async function loadChatDialogs(roleId, append = false) {
+            if (lazyLoadState.dialogs.loading || !currentUser?.id) return [];
+
             try {
-                const response = await fetch(`/api/conversation/dialogs?user_id=${parseInt(currentUser.id)}&role_id=${parseInt(roleId)}`, {
+                lazyLoadState.dialogs.loading = true;
+
+                if (!append) {
+                    lazyLoadState.dialogs.offset = 0;
+                    lazyLoadState.dialogs.hasMore = true;
+                }
+
+                if (!lazyLoadState.dialogs.hasMore) {
+                    lazyLoadState.dialogs.loading = false;
+                    return [];
+                }
+
+                const url = `/api/conversation/dialogs?user_id=${parseInt(currentUser.id)}&role_id=${parseInt(roleId)}&offset=${lazyLoadState.dialogs.offset}&limit=${lazyLoadState.dialogs.limit}`;
+                const response = await fetch(url, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('authToken')}`
@@ -3751,17 +4028,31 @@
                     throw new Error('获取聊天记录失败');
                 }
 
-                const dialogs = await response.json();
-                return dialogs.map(dialog => ({
-                    id: ++messageIdCounter, // 为历史消息也添加ID
-                    sender: dialog.is_user ? 'user' : 'role',
-                    message: dialog.text,
-                    timestamp: dialog.timestamp,
-                    voice: dialog.voice // 语音文件URL（如果有）
-                }));
+                const data = await response.json();
+                console.log('聊天记录数据:', data);
+
+                if (data && data.items && Array.isArray(data.items)) {
+                    lazyLoadState.dialogs.total = data.total;
+                    lazyLoadState.dialogs.hasMore = data.has_more;
+                    lazyLoadState.dialogs.offset += lazyLoadState.dialogs.limit;
+
+                    const dialogs = data.items.map(dialog => ({
+                        id: ++messageIdCounter,
+                        sender: dialog.is_user ? 'user' : 'role',
+                        message: dialog.text,
+                        timestamp: dialog.timestamp,
+                        voice: dialog.voice
+                    }));
+
+                    return dialogs;
+                } else {
+                    return [];
+                }
             } catch (error) {
                 console.error('加载聊天记录错误:', error);
                 return [];
+            } finally {
+                lazyLoadState.dialogs.loading = false;
             }
         }
 
@@ -3823,8 +4114,14 @@
                 const nameElement = document.getElementById('currentRoleNameNew');
                 nameElement.textContent = role.name;
 
-                // 加载历史聊天记录
-                chatMessages = await loadChatDialogs(roleId);
+                // 重置聊天记录状态
+                chatMessages = [];
+                lazyLoadState.dialogs.offset = 0;
+                lazyLoadState.dialogs.hasMore = true;
+
+                // 加载历史聊天记录（第一页）
+                const firstPageMessages = await loadChatDialogs(roleId, false);
+                chatMessages = firstPageMessages;
                 renderChatMessages();
 
                 // 启用输入框
