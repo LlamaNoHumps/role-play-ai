@@ -15,6 +15,7 @@ pub const PATH: &str = "/api/role/create";
 pub async fn handler(
     Extension(database): Extension<Arc<Database>>,
     Json(RequestParams {
+        user_id,
         name,
         description,
         traits,
@@ -24,7 +25,15 @@ pub async fn handler(
     }): Json<RequestParams>,
 ) -> HttpResult<Json<ResponseData>> {
     let role_id = database
-        .add_role(&name, &description, &traits, &image_url, gender, voice_type)
+        .add_role(
+            user_id,
+            &name,
+            &description,
+            &traits,
+            &image_url,
+            gender,
+            voice_type,
+        )
         .await?;
 
     Ok(Json(ResponseData { role_id }))
@@ -32,6 +41,7 @@ pub async fn handler(
 
 #[derive(Deserialize)]
 pub struct RequestParams {
+    pub user_id: i32,
     pub name: String,
     pub description: String,
     pub traits: String,

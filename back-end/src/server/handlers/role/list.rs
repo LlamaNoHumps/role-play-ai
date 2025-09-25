@@ -25,6 +25,7 @@ pub async fn handler(
     for role in &roles.items {
         response_data.push(ResponseItem {
             role_id: role.id,
+            user_id: role.user_id,
             name: role.name.clone(),
             description: role.description.clone(),
             traits: role.traits.clone(),
@@ -57,6 +58,7 @@ pub struct PaginatedResponse<T> {
 #[derive(Serialize)]
 pub struct ResponseItem {
     pub role_id: i32,
+    pub user_id: i32,
     pub name: String,
     pub description: String,
     pub traits: String,

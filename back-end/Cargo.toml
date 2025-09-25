@@ -11,6 +11,7 @@ debug = true
 overflow-checks = true
 
 [lints.clippy]
+too_many_arguments = "allow"
 
 [dependencies]
 reqwest = { version = "0.12.23", default-features = false, features = [
