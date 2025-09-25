@@ -1,5 +1,4 @@
 use anyhow::{Result, anyhow};
-use axum::{Extension, extract::path};
 use futures::io::Cursor;
 use qiniu_sdk::{
     apis::{Client, storage::create_bucket::PathParams},
@@ -9,7 +8,7 @@ use qiniu_sdk::{
     upload::{AutoUploader, AutoUploaderObjectParams, UploadManager, UploadTokenSigner},
 };
 use serde::Deserialize;
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 pub struct StorageClient {
     credential: Credential,
@@ -139,10 +138,6 @@ impl StorageClient {
 
     pub fn get_object_url(&self, name: &str) -> String {
         format!("http://{}/{}", self.domain, name)
-    }
-
-    pub fn into_layer(self) -> Extension<Arc<Self>> {
-        Extension(Arc::new(self))
     }
 }
 

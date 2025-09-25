@@ -4,6 +4,7 @@ use crate::{
     agents::{AI, RoleBuilder, Summarizer},
     database::Database,
     env::ENV,
+    reciter::Reciter,
     storage::StorageClient,
     trace::trace_middleware,
 };
@@ -16,6 +17,7 @@ use tower_http::services::ServeDir;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 mod handlers;
+mod sockets;
 
 pub async fn run() {
     let env = ENV.get().unwrap();
@@ -51,7 +53,23 @@ pub async fn run() {
         .ping_timeout(Duration::from_secs(2))
         .build_layer();
 
-    socketio.ns("/", |s: SocketRef| {});
+    let storage_client = Arc::new(storage_client);
+    let database = Arc::new(database);
+    let role_builder = Arc::new(role_builder);
+    let socketio = Arc::new(socketio);
+
+    let reciter = Reciter::new(storage_client.clone(), &env.qiniu_ai_api_key);
+    let database_s = database.clone();
+    let ai = Arc::new(ai);
+    socketio.ns("/", |s: SocketRef| {
+        sockets::connect(&s);
+        s.on_disconnect(sockets::disconnect);
+        s.on(sockets::join::EVENT, sockets::join::handler);
+        s.on(sockets::message::EVENT, sockets::message::handler);
+        s.extensions.insert(database_s);
+        s.extensions.insert(ai);
+        s.extensions.insert(reciter);
+    });
 
     let router = Router::new()
         .nest_service("/static", ServeDir::new("./static"))
@@ -88,12 +106,11 @@ pub async fn run() {
             get(handlers::conversation::dialogs::handler),
         )
         .layer(middleware::from_fn(trace_middleware))
-        .layer(storage_client.into_layer())
-        .layer(database.into_layer())
-        .layer(ai.into_layer())
-        .layer(role_builder.into_layer())
+        .layer(Extension(storage_client))
+        .layer(Extension(database))
+        .layer(Extension(role_builder))
         .layer(socketio_layer)
-        .layer(Extension(Arc::new(socketio)));
+        .layer(Extension(socketio));
 
     let listener = tokio::net::TcpListener::bind((HOST, port)).await.unwrap();
 

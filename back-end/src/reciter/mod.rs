@@ -1,9 +1,13 @@
-use crate::storage::StorageClient;
+use crate::{
+    database::models::roles::{Gender, VoiceType},
+    storage::StorageClient,
+};
 use anyhow::Result;
 use base64::{Engine, engine::general_purpose};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 
+#[derive(Clone)]
 pub struct Reciter {
     storage_client: Arc<StorageClient>,
     http_client: reqwest::Client,
@@ -49,7 +53,7 @@ impl Reciter {
             audio: AudioInfo {
                 voice_type: voice_type.to_string(),
                 encoding: "mp3".to_string(),
-                speed_ratio: Some(1.5),
+                speed_ratio: Some(1.0),
             },
             request: RequestText {
                 text: text.to_string(),
@@ -70,8 +74,34 @@ impl Reciter {
         let file_name = format!("audio_{}.mp3", uuid::Uuid::new_v4());
         let object_info = self.storage_client.upload_object(&file_name, data).await?;
 
-        Ok(object_info.key)
+        let url = self.storage_client.get_object_url(&object_info.key);
+
+        Ok(url)
     }
+}
+
+// 去除文本括号中的内容
+pub fn remove_brackets(text: &str) -> String {
+    let mut result = String::new();
+    let mut skip = 0;
+
+    for c in text.chars() {
+        match c {
+            '(' | '（' => skip += 1,
+            ')' | '）' => {
+                if skip > 0 {
+                    skip -= 1;
+                }
+            }
+            _ => {
+                if skip == 0 {
+                    result.push(c);
+                }
+            }
+        }
+    }
+
+    result
 }
 
 #[derive(Serialize)]
@@ -92,23 +122,11 @@ struct RequestText {
     text: String,
 }
 
-pub enum Gender {
-    Male,
-    Female,
-}
-
-pub enum VoiceType {
-    Mature,
-    Young,
-}
-
 #[derive(Deserialize)]
 struct Response {
-    reqid: String,
-    operation: String,
-    sequence: i8,
     data: String,
-    addition: HashMap<String, serde_json::Value>,
+    #[serde(flatten)]
+    _others: HashMap<String, serde_json::Value>,
 }
 
 #[cfg(test)]

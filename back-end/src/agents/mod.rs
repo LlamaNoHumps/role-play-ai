@@ -1,11 +1,8 @@
-mod role_builder;
+pub mod role_builder;
 mod summarizer;
-
-use std::sync::Arc;
 
 use anyhow::Result;
 use async_openai::config::OpenAIConfig;
-use axum::Extension;
 use llm_chain::{
     options::{ModelRef, Opt, Options},
     parameters, prompt,
@@ -54,22 +51,41 @@ impl AI {
         }
     }
 
-    pub async fn chat_once(&self, system: &str, user: &str) -> Result<String> {
-        let res = prompt!(system, "{{user}}")
+    pub async fn chat_once(
+        &self,
+        system: &str,
+        user: &str,
+        history: Option<&str>,
+    ) -> Result<String> {
+        let system = if let Some(history) = history {
+            format!(
+                r#"{system}
+Below is the recent conversation history (most recent at bottom):
+{history}
+"#
+            )
+        } else {
+            system.to_string()
+        };
+
+        let res = prompt!(&system, "{{user}}\nAssistant:")
             .run(&parameters!("user" => user), &self.thinking_executor)
-            .await?;
-        Ok(res
+            .await?
             .to_immediate()
             .await?
             .as_content()
             .to_text()
             .trim()
-            .to_string())
-    }
+            .to_string();
 
-    pub fn into_layer(self) -> Extension<Arc<Self>> {
-        Extension(Arc::new(self))
+        let res = remove_prefix_assistant(&res);
+
+        Ok(res.to_string())
     }
+}
+
+pub fn remove_prefix_assistant(text: &str) -> &str {
+    text.trim_start_matches("Assistant:").trim()
 }
 
 #[cfg(test)]
@@ -112,7 +128,10 @@ mod tests {
 
         let env = get_env();
         let ai = AI::new(&env.qiniu_ai_api_key);
-        let reply = ai.chat_once(prompt, "你最近在忙什么呀？").await.unwrap();
+        let reply = ai
+            .chat_once(prompt, "你最近在忙什么呀？", None)
+            .await
+            .unwrap();
         println!("Reply:\n{}", reply);
     }
 }
