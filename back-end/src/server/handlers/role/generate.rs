@@ -18,6 +18,7 @@ pub async fn handler(
         traits,
         gender,
         voice_type,
+        sid,
     }): Json<RequestParams>,
 ) -> HttpResult<Json<ResponseData>> {
     let description = description.unwrap_or_default();
@@ -39,7 +40,14 @@ pub async fn handler(
         gender,
         voice_type,
     } = role_builder
-        .build(&name, &description, &traits, &gender, &voice_type)
+        .build(
+            &name,
+            &description,
+            &traits,
+            &gender,
+            &voice_type,
+            Some(sid),
+        )
         .await?;
 
     Ok(Json(ResponseData {
@@ -57,6 +65,7 @@ pub struct RequestParams {
     pub traits: Option<String>,
     pub gender: Option<Gender>,
     pub voice_type: Option<VoiceType>,
+    pub sid: String,
 }
 
 #[derive(Serialize)]

@@ -971,7 +971,6 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            margin-top: 28px;
         }
 
         .auto-fill-btn:hover {
@@ -984,6 +983,34 @@
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
+        }
+
+        .auto-fill-container {
+            display: flex;
+            align-items: center;
+            margin-top: 12px;
+            margin-bottom: 16px;
+        }
+
+        .auto-fill-progress {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-left: 12px;
+            display: flex;
+            align-items: center;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.7;
+            }
+
+            50% {
+                opacity: 1;
+            }
         }
 
         .role-textarea {
@@ -1961,21 +1988,23 @@
 
                         <!-- 角色名称 -->
                         <div class="role-input-group">
-                            <div class="role-input-row">
-                                <div class="role-input-main">
-                                    <label class="form-label" for="roleName">角色名称</label>
-                                    <input type="text" id="roleName" class="form-input" placeholder="请输入角色名称"
-                                        maxlength="50">
-                                    <div class="error-message" id="roleNameError"></div>
-                                </div>
-                                <button type="button" class="auto-fill-btn" onclick="autoFillDescription()"
-                                    id="autoFillBtn">
-                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                                        <path
-                                            d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0zM9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1zM4.5 9a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1h-7zM4 10.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm.5 2.5a.5.5 0 0 1 0-1h4a.5.5 0 0 1 0 1h-4z" />
-                                    </svg>
-                                    自动填写
-                                </button>
+                            <label class="form-label" for="roleName">角色名称</label>
+                            <input type="text" id="roleName" class="form-input" placeholder="请输入角色名称" maxlength="50">
+                            <div class="error-message" id="roleNameError"></div>
+                        </div>
+
+                        <!-- 自动填写按钮 -->
+                        <div class="auto-fill-container">
+                            <button type="button" class="auto-fill-btn" onclick="autoFillDescription()"
+                                id="autoFillBtn">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path
+                                        d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0zM9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1zM4.5 9a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1h-7zM4 10.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm.5 2.5a.5.5 0 0 1 0-1h4a.5.5 0 0 1 0 1h-4z" />
+                                </svg>
+                                自动填写
+                            </button>
+                            <div class="auto-fill-progress" id="autoFillProgress" style="display: none;">
+                                正在准备...
                             </div>
                         </div>
 
@@ -2220,6 +2249,14 @@
                 console.log('===================');
                 // 更新最近对话列表排序
                 updateRecentChatsList();
+            });
+
+            // 监听角色构建进度事件
+            socket.on('role_build_status', (status) => {
+                console.log('=== 角色构建进度 ===');
+                console.log('状态:', status);
+                console.log('==================');
+                updateAutoFillProgress(status);
             });
 
             // 连接错误处理
@@ -3221,11 +3258,33 @@
         // 自动填写描述和特点
         let currentAutoFillController = null; // 用于存储当前请求的controller
 
+        // 更新自动填充进度显示
+        function updateAutoFillProgress(status) {
+            const progressElement = document.getElementById('autoFillProgress');
+            if (progressElement) {
+                progressElement.textContent = status;
+                progressElement.style.display = 'block';
+            }
+        }
+
+        // 隐藏自动填充进度显示
+        function hideAutoFillProgress() {
+            const progressElement = document.getElementById('autoFillProgress');
+            if (progressElement) {
+                progressElement.style.display = 'none';
+            }
+        }
+
         async function autoFillDescription() {
             const roleName = document.getElementById('roleName').value.trim();
 
             if (!roleName) {
                 showError('roleNameError', '请先输入角色名称');
+                return;
+            }
+
+            if (!socket || !socket.connected) {
+                alert('连接未建立，请稍后重试');
                 return;
             }
 
@@ -3240,12 +3299,14 @@
             // 创建新的AbortController
             currentAutoFillController = new AbortController();
 
-            // 更新按钮状态为生成中，并添加取消功能
+            // 显示进度并更新按钮状态
+            updateAutoFillProgress('正在准备...');
             btn.onclick = () => {
                 if (currentAutoFillController) {
                     currentAutoFillController.abort();
                     currentAutoFillController = null;
                 }
+                hideAutoFillProgress();
                 resetAutoFillButton(btn, originalHTML);
             };
             btn.innerHTML = `
@@ -3265,7 +3326,7 @@
                 const gender = document.querySelector('input[name="roleGender"]:checked').value;
                 const voiceType = document.querySelector('input[name="roleVoiceType"]:checked').value;
 
-                // 调用AI生成接口，不设置超时限制
+                // 调用AI生成接口，包含Socket.IO的sid
                 const response = await fetch('/api/role/auto-fill', {
                     method: 'POST',
                     headers: {
@@ -3276,7 +3337,8 @@
                         description: currentDescription || undefined,
                         traits: currentTraits || undefined,
                         gender: gender,
-                        voice_type: voiceType
+                        voice_type: voiceType,
+                        sid: socket.id
                     }),
                     signal: currentAutoFillController.signal
                 });
@@ -3315,6 +3377,7 @@
                     alert('网络错误或AI生成超时，请稍后重试');
                 }
             } finally {
+                hideAutoFillProgress();
                 resetAutoFillButton(btn, originalHTML);
                 currentAutoFillController = null;
             }
