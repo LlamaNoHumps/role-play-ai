@@ -1,7 +1,8 @@
 use super::{AI, remove_prefix_assistant};
 use crate::database::models::roles::{Gender, VoiceType};
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use llm_chain::{parameters, prompt};
+use socketioxide::SocketIo;
 
 pub struct RoleBuilt {
     pub description: String,
@@ -12,11 +13,12 @@ pub struct RoleBuilt {
 
 pub struct RoleBuilder {
     ai: AI,
+    socket: Option<SocketIo>,
 }
 
 impl RoleBuilder {
-    pub fn new(ai: AI) -> Self {
-        Self { ai }
+    pub fn new(ai: AI, socket: Option<SocketIo>) -> Self {
+        Self { ai, socket }
     }
 
     pub async fn build(
@@ -26,19 +28,27 @@ impl RoleBuilder {
         traits: &str,
         gender: &str,
         voice_type: &str,
+        sid: Option<String>,
     ) -> Result<RoleBuilt> {
-        let name = self.to_precise_en_title(name).await?;
-        let extract = wiki_extract(&name).await?;
+        let name = self.to_precise_en_title(name, sid.clone()).await?;
+        let extract = self.wiki_extract(&name, sid.clone()).await?;
 
         let traits = if extract.is_empty() {
-            self.traits_from_prior(&name, description, traits, gender, voice_type)
+            self.traits_from_prior(&name, description, traits, gender, voice_type, sid.clone())
                 .await?
         } else {
-            self.traits_from_extract(&extract, description, traits, gender, voice_type)
-                .await?
+            self.traits_from_extract(
+                &extract,
+                description,
+                traits,
+                gender,
+                voice_type,
+                sid.clone(),
+            )
+            .await?
         };
 
-        let prompt = self.build_cn_rp_system_prompt(&name, &traits).await?;
+        let prompt = self.build_cn_rp_system_prompt(&name, &traits, sid).await?;
 
         let description = extract_content_from_xml(&prompt, "description").unwrap_or_default();
 
@@ -70,7 +80,9 @@ impl RoleBuilder {
         })
     }
 
-    async fn to_precise_en_title(&self, raw_name: &str) -> Result<String> {
+    async fn to_precise_en_title(&self, raw_name: &str, sid: Option<String>) -> Result<String> {
+        self.emit_status(sid.clone(), "正在规范角色名称...").await?;
+
         let sys = r#"
 你是维基百科检索助手。目标：把用户的人名转成“维基百科英文条目标题”。
 要求：
@@ -110,7 +122,10 @@ impl RoleBuilder {
         traits: &str,
         gender: &str,
         voice_type: &str,
+        sid: Option<String>,
     ) -> Result<String> {
+        self.emit_status(sid, "正在生成角色特征...").await?;
+
         let sys = r#"
 你是角色设定提炼助手。输入是英文维基导言 extract。用户可能会提供一些描述、特征、性别、声音类型。
 角色的性别值为“male”或“female”，声音类型为“mature”或“young”。
@@ -153,7 +168,10 @@ impl RoleBuilder {
         traits: &str,
         gender: &str,
         voice_type: &str,
+        sid: Option<String>,
     ) -> Result<String> {
+        self.emit_status(sid, "正在生成角色特征...").await?;
+
         let sys = r#"
 你是角色设定助手。当前没有百科 extract。用户可能会提供一些描述、特征、性别、声音类型。
 角色的性别值为“male”或“female”，声音类型为“mature”或“young”。
@@ -187,7 +205,14 @@ impl RoleBuilder {
         Ok(res.to_string())
     }
 
-    async fn build_cn_rp_system_prompt(&self, person_en: &str, traits_cn: &str) -> Result<String> {
+    async fn build_cn_rp_system_prompt(
+        &self,
+        person_en: &str,
+        traits_cn: &str,
+        sid: Option<String>,
+    ) -> Result<String> {
+        self.emit_status(sid, "正在生成角色描述和特点...").await?;
+
         let sys = r#"
 你是提示词工程师。把给定的“角色特征要点”组织成**中文的 system 提示词**，用于和模型对话的角色扮演。
 要求：
@@ -219,34 +244,51 @@ impl RoleBuilder {
 
         Ok(res.to_string())
     }
-}
 
-pub async fn wiki_extract(title: &str) -> Result<String> {
-    let api = mediawiki::api::Api::new("https://en.wikipedia.org/w/api.php").await?;
+    pub async fn wiki_extract(&self, title: &str, sid: Option<String>) -> Result<String> {
+        self.emit_status(sid, "正在尝试从维基百科获取角色简介...")
+            .await?;
 
-    let params = api.params_into(&[
-        ("action", "query"),
-        ("prop", "extracts"),
-        ("exintro", ""),
-        ("explaintext", ""),
-        ("titles", title),
-        ("format", "json"),
-    ]);
+        let api = mediawiki::api::Api::new("https://en.wikipedia.org/w/api.php").await?;
 
-    let res = api.get_query_api_json_all(&params).await?;
+        let params = api.params_into(&[
+            ("action", "query"),
+            ("prop", "extracts"),
+            ("exintro", ""),
+            ("explaintext", ""),
+            ("titles", title),
+            ("format", "json"),
+        ]);
 
-    let pages = &res["query"]["pages"];
+        let res = api.get_query_api_json_all(&params).await?;
 
-    // page编号为-1则没有找到，没有extract
-    if pages.as_object().unwrap().contains_key("-1") {
-        return Ok(String::new());
+        let pages = &res["query"]["pages"];
+
+        // page编号为-1则没有找到，没有extract
+        if pages.as_object().unwrap().contains_key("-1") {
+            return Ok(String::new());
+        }
+
+        // 取第一个page
+        let page = pages.as_object().unwrap().values().next().unwrap();
+        let extract = page["extract"].as_str().unwrap_or("").to_string();
+
+        Ok(extract)
     }
 
-    // 取第一个page
-    let page = pages.as_object().unwrap().values().next().unwrap();
-    let extract = page["extract"].as_str().unwrap_or("").to_string();
+    async fn emit_status(&self, sid: Option<String>, status: &str) -> Result<()> {
+        if let Some(socket) = &self.socket {
+            if let Some(sid) = sid {
+                socket
+                    .to(sid)
+                    .emit("role_build_status", status)
+                    .await
+                    .map_err(|e| anyhow!("{}", e))?;
+            }
+        }
 
-    Ok(extract)
+        Ok(())
+    }
 }
 
 pub fn extract_content_from_xml(xml: &str, tag: &str) -> Option<String> {
@@ -266,7 +308,7 @@ mod tests {
         let env = get_env();
         let ai = AI::new(&env.qiniu_ai_api_key);
 
-        let role_builder = RoleBuilder::new(ai);
+        let role_builder = RoleBuilder::new(ai, None);
         let RoleBuilt {
             description,
             traits,
@@ -279,6 +321,7 @@ mod tests {
                 "说话很土",
                 "female",
                 "mature",
+                None,
             )
             .await
             .unwrap();
@@ -290,8 +333,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_wiki_extract() {
+        let env = get_env();
+        let ai = AI::new(&env.qiniu_ai_api_key);
+
         let title = "Harry Potter";
-        let extract = wiki_extract(title).await.unwrap();
+        let role_builder = RoleBuilder::new(ai, None);
+        let extract = role_builder.wiki_extract(title, None).await.unwrap();
         println!("Extract for {}:\n{}", title, extract);
     }
 }

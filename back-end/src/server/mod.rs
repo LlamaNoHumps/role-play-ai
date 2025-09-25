@@ -48,13 +48,13 @@ pub async fn run() {
     .unwrap();
     database.init().await.unwrap();
 
-    let ai = AI::new(&env.qiniu_ai_api_key);
-    let role_builder = RoleBuilder::new(ai.clone());
-
     let (socketio_layer, socketio) = SocketIo::builder()
         .ping_interval(Duration::from_secs(3))
         .ping_timeout(Duration::from_secs(2))
         .build_layer();
+
+    let ai = AI::new(&env.qiniu_ai_api_key);
+    let role_builder = RoleBuilder::new(ai.clone(), Some(socketio.clone()));
 
     let storage_client = Arc::new(storage_client);
     let database = Arc::new(database);

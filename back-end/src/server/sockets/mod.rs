@@ -5,7 +5,11 @@ pub mod voice;
 use socketioxide::extract::SocketRef;
 
 pub fn connect(socket: &SocketRef) {
-    tracing::info!("client {} connected", socket.id);
+    let sid = socket.id;
+
+    socket.join(sid);
+
+    tracing::info!("client {} connected", sid);
 }
 
 pub fn disconnect(socket: SocketRef) {
