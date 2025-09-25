@@ -12,6 +12,12 @@ use sea_orm::{
 
 const DB_NAME: &str = "role-play-ai";
 
+pub struct PaginatedResult<T> {
+    pub items: Vec<T>,
+    pub total: i64,
+    pub has_more: bool,
+}
+
 pub struct Database {
     connection: DatabaseConnection,
 }
@@ -108,16 +114,31 @@ impl Database {
         Ok(())
     }
 
-    pub async fn list_conversations(
+    pub async fn list_conversations_paginated(
         &self,
         user_id: i32,
-    ) -> Result<Vec<models::conversations::Model>> {
-        let conversations = models::conversations::Entity::find()
-            .filter(models::conversations::Column::UserId.eq(user_id))
-            .all(&self.connection)
-            .await?;
+        offset: i64,
+        limit: i64,
+    ) -> Result<PaginatedResult<models::conversations::Model>> {
+        use sea_orm::{PaginatorTrait, QueryOrder};
 
-        Ok(conversations)
+        let paginator = models::conversations::Entity::find()
+            .filter(models::conversations::Column::UserId.eq(user_id))
+            .order_by_desc(models::conversations::Column::Id)
+            .paginate(&self.connection, limit as u64);
+
+        let num_pages = paginator.num_pages().await?;
+        let total = paginator.num_items().await?;
+
+        let page_number = (offset / limit) as u64;
+        let items = paginator.fetch_page(page_number).await?;
+        let has_more = (page_number + 1) < num_pages;
+
+        Ok(PaginatedResult {
+            items,
+            total: total as i64,
+            has_more,
+        })
     }
 
     pub async fn list_dialogs(
@@ -148,6 +169,61 @@ impl Database {
             .collect::<Vec<models::conversation_template::Model>>();
 
         Ok(dialogs)
+    }
+
+    pub async fn list_dialogs_paginated(
+        &self,
+        user_id: i32,
+        role_id: i32,
+        offset: i64,
+        limit: i64,
+    ) -> Result<PaginatedResult<models::conversation_template::Model>> {
+        let table_name = format!("conv_{}_{}", user_id, role_id);
+
+        let count_sql = format!("SELECT COUNT(*) as total FROM `{}`", table_name);
+        let count_res = self
+            .connection
+            .query_one(sea_orm::Statement::from_string(
+                self.connection.get_database_backend(),
+                count_sql,
+            ))
+            .await?;
+
+        let total: i64 = count_res
+            .and_then(|row| row.try_get("", "total").ok())
+            .unwrap_or(0);
+
+        let sql = format!(
+            "SELECT * FROM `{}` ORDER BY timestamp ASC LIMIT {} OFFSET {}",
+            table_name, limit, offset
+        );
+
+        let res = self
+            .connection
+            .query_all(sea_orm::Statement::from_string(
+                self.connection.get_database_backend(),
+                sql,
+            ))
+            .await?;
+
+        let dialogs = res
+            .into_iter()
+            .map(|row| models::conversation_template::Model {
+                id: row.try_get("", "id").unwrap_or(0),
+                is_user: row.try_get("", "is_user").unwrap_or(false),
+                timestamp: row.try_get("", "timestamp").unwrap_or(0),
+                text: row.try_get("", "text").unwrap_or_default(),
+                voice: row.try_get("", "voice").ok(),
+            })
+            .collect::<Vec<models::conversation_template::Model>>();
+
+        let has_more = (offset + limit) < total;
+
+        Ok(PaginatedResult {
+            items: dialogs,
+            total,
+            has_more,
+        })
     }
 
     pub async fn add_dialog(
@@ -216,10 +292,29 @@ impl Database {
         role.ok_or_else(|| anyhow::anyhow!("Role not found"))
     }
 
-    pub async fn list_roles(&self) -> Result<Vec<models::roles::Model>> {
-        let roles = models::roles::Entity::find().all(&self.connection).await?;
+    pub async fn list_roles_paginated(
+        &self,
+        offset: i64,
+        limit: i64,
+    ) -> Result<PaginatedResult<models::roles::Model>> {
+        use sea_orm::{PaginatorTrait, QueryOrder};
 
-        Ok(roles)
+        let paginator = models::roles::Entity::find()
+            .order_by_asc(models::roles::Column::Id)
+            .paginate(&self.connection, limit as u64);
+
+        let num_pages = paginator.num_pages().await?;
+        let total = paginator.num_items().await?;
+
+        let page_number = (offset / limit) as u64;
+        let items = paginator.fetch_page(page_number).await?;
+        let has_more = (page_number + 1) < num_pages;
+
+        Ok(PaginatedResult {
+            items,
+            total: total as i64,
+            has_more,
+        })
     }
 
     pub async fn search_roles(&self, keyword: &str) -> Result<Vec<models::roles::Model>> {
