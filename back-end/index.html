@@ -2331,6 +2331,12 @@
             console.log('消息已添加，重新渲染界面');
             renderChatMessages();
 
+            // 自动播放AI回复的语音
+            if (data.voice_url) {
+                console.log('自动播放AI语音:', data.voice_url);
+                playVoice(data.voice_url);
+            }
+
             // 更新最近对话列表排序
             updateRecentChatsList();
         }
@@ -4315,6 +4321,9 @@
             // 重新渲染消息
             renderChatMessages();
 
+            // 显示"正在回复"状态
+            showTypingIndicator();
+
             // 通过Socket.IO发送消息到后端
             sendSocketMessage(currentUser.id, currentChatRole.id, message);
         }
@@ -4533,6 +4542,18 @@
             const roleNameElement = document.getElementById('currentRoleNameNew');
             if (roleNameElement && currentChatRole) {
                 roleNameElement.textContent = currentChatRole.name;
+            }
+        }
+
+        // 播放语音
+        function playVoice(voiceUrl) {
+            try {
+                const audio = new Audio(voiceUrl);
+                audio.play().catch(error => {
+                    console.error('语音播放失败:', error);
+                });
+            } catch (error) {
+                console.error('创建音频对象失败:', error);
             }
         }
 
