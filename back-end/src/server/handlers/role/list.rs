@@ -1,4 +1,10 @@
-use crate::{database::Database, error::HttpResult};
+use crate::{
+    database::{
+        Database,
+        models::roles::{Gender, VoiceType},
+    },
+    error::HttpResult,
+};
 use axum::{Extension, Json};
 use serde::Serialize;
 use std::sync::Arc;
@@ -20,6 +26,8 @@ pub async fn handler(
             description: role.description,
             traits: role.traits,
             image_url: role.image,
+            gender: role.gender,
+            voice_type: role.voice_type,
         });
     }
 
@@ -33,4 +41,6 @@ pub struct ResponseItem {
     pub description: String,
     pub traits: String,
     pub image_url: String,
+    pub gender: Gender,
+    pub voice_type: VoiceType,
 }

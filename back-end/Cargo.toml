@@ -53,7 +53,7 @@ axum = { version = "0.8.4", default-features = false, features = [
     "query",
     "macros",
 ] }
-# chrono = { version = "0.4.42", default-features = false }
+chrono = { version = "0.4.42", default-features = false }
 # regex = { version = "1.11.2", default-features = false, features = ["std"] }
 tower-http = { version = "0.6.6", default-features = false, features = ["fs"] }
 tracing = { version = "0.1.41", default-features = false }
@@ -68,9 +68,10 @@ llm-chain-openai = { version = "0.13.0", default-features = false }
 llm-chain = { version = "0.13.0", default-features = false }
 async-openai = { version = "0.16.3", default-features = false }
 socketioxide = { version = "0.16.3", default-features = false, features = [
-    "state",
     "tracing",
+    "extensions",
 ] }
+roxmltree = { version = "0.20.0", default-features = false }
 
 [dev-dependencies]
 dotenv = { version = "0.15.0", default-features = false }

@@ -2,14 +2,13 @@ pub mod init;
 pub mod models;
 pub mod status;
 
-use std::sync::Arc;
-
 use anyhow::Result;
-use axum::Extension;
 use sea_orm::{
     ActiveValue::{self, Set},
     ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, QueryFilter,
 };
+
+use models::roles::{Gender, VoiceType};
 
 const DB_NAME: &str = "role-play-ai";
 
@@ -186,6 +185,8 @@ impl Database {
         description: &str,
         traits: &str,
         image: &str,
+        gender: Gender,
+        voice_type: VoiceType,
     ) -> Result<i32> {
         let role = models::roles::ActiveModel {
             id: ActiveValue::default(),
@@ -193,6 +194,8 @@ impl Database {
             description: Set(description.to_string()),
             traits: Set(traits.to_string()),
             image: Set(image.to_string()),
+            gender: Set(gender),
+            voice_type: Set(voice_type),
         };
 
         let res = models::roles::Entity::insert(role)
@@ -216,7 +219,19 @@ impl Database {
         Ok(roles)
     }
 
-    pub fn into_layer(self) -> Extension<Arc<Self>> {
-        Extension(Arc::new(self))
+    pub async fn get_history(&self, user_id: i32, role_id: i32) -> Result<String> {
+        let dialogs = self.list_dialogs(user_id, role_id).await?;
+        let history = dialogs
+            .into_iter()
+            .map(|d| {
+                if d.is_user {
+                    format!("User: {}", d.text)
+                } else {
+                    format!("Assistant: {}", d.text)
+                }
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
+        Ok(history)
     }
 }

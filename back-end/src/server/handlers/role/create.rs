@@ -1,4 +1,10 @@
-use crate::{database::Database, error::HttpResult};
+use crate::{
+    database::{
+        Database,
+        models::roles::{Gender, VoiceType},
+    },
+    error::HttpResult,
+};
 use axum::{Extension, Json};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -13,10 +19,12 @@ pub async fn handler(
         description,
         traits,
         image_url,
+        gender,
+        voice_type,
     }): Json<RequestParams>,
 ) -> HttpResult<Json<ResponseData>> {
     let role_id = database
-        .add_role(&name, &description, &traits, &image_url)
+        .add_role(&name, &description, &traits, &image_url, gender, voice_type)
         .await?;
 
     Ok(Json(ResponseData { role_id }))
@@ -29,6 +37,8 @@ pub struct RequestParams {
     pub traits: String,
     #[serde(rename = "avatar")]
     pub image_url: String,
+    pub gender: Gender,
+    pub voice_type: VoiceType,
 }
 
 #[derive(Serialize)]
