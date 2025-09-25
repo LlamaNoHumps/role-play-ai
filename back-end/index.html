@@ -2176,6 +2176,15 @@
                 handleMessageUpdate(data);
             });
 
+            // 监听用户消息保存确认事件
+            socket.on('user_message_saved', (data) => {
+                console.log('=== 用户消息已保存 ===');
+                console.log('数据:', data);
+                console.log('===================');
+                // 更新最近对话列表排序
+                updateRecentChatsList();
+            });
+
             // 连接错误处理
             socket.on('connect_error', (error) => {
                 console.error('Socket连接错误:', error);
@@ -2321,6 +2330,9 @@
             chatMessages.push(message);
             console.log('消息已添加，重新渲染界面');
             renderChatMessages();
+
+            // 更新最近对话列表排序
+            updateRecentChatsList();
         }
 
         // 用户状态管理
@@ -3996,6 +4008,22 @@
                 chatListElement.innerHTML += chatItems;
             } else {
                 chatListElement.innerHTML = chatItems;
+            }
+        }
+
+        // 更新最近对话列表排序（在有新消息时调用）
+        async function updateRecentChatsList() {
+            if (!isLoggedIn || !currentUser?.id) {
+                return;
+            }
+
+            console.log('更新最近对话列表排序');
+
+            // 重新加载最近对话列表（这会按照最新的last_dialog_timestamp排序）
+            try {
+                await loadRecentChats(false); // false表示不是追加，而是重新加载
+            } catch (error) {
+                console.error('更新最近对话列表失败:', error);
             }
         }
 

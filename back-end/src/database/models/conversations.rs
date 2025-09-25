@@ -10,6 +10,7 @@ pub struct Model {
     pub id: i32,
     pub user_id: i32,
     pub role_id: i32,
+    pub last_dialog_timestamp: i64,
 }
 
 #[derive(Clone, Debug, EnumIter, DeriveRelation)]

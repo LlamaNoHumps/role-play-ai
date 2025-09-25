@@ -38,6 +38,15 @@ pub async fn handler_inner(
         .add_dialog(user_id, role_id, true, timestamp, &text, None)
         .await?;
 
+    socket.emit(
+        "user_message_saved",
+        &UserMessageSavedData {
+            user_id,
+            role_id,
+            timestamp,
+        },
+    )?;
+
     let role = database.get_role(role_id).await?;
     let history = database.get_history(user_id, role_id).await?;
 
@@ -88,4 +97,11 @@ pub struct EmitData {
     pub timestamp: i64,
     pub text: String,
     pub voice_url: String,
+}
+
+#[derive(Serialize)]
+pub struct UserMessageSavedData {
+    pub user_id: i32,
+    pub role_id: i32,
+    pub timestamp: i64,
 }
