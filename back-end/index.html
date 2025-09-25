@@ -2689,6 +2689,52 @@
         // 当前页面状态
         let currentPage = 'home'; // 'home', 'create-role', 'chat'
         let currentChatRoleId = null; // 当前聊天的角色ID
+        let pendingAction = null; // 登录后需要执行的操作
+
+        // 设置登录后需要执行的操作
+        function setPendingAction(action, params = null) {
+            pendingAction = {
+                action: action,
+                params: params
+            };
+            console.log('设置登录后待执行操作:', pendingAction);
+        }
+
+        // 执行登录后的待处理操作
+        function executePendingAction() {
+            if (!pendingAction) return;
+
+            console.log('执行登录后待处理操作:', pendingAction);
+            const { action, params } = pendingAction;
+
+            // 清除待处理操作
+            pendingAction = null;
+
+            // 执行对应的操作
+            switch (action) {
+                case 'createRole':
+                    showCreateRolePage();
+                    break;
+                case 'selectRole':
+                    if (params && params.roleId) {
+                        startChatWithRole(params.roleId);
+                    }
+                    break;
+                case 'openChat':
+                    if (params && params.roleId) {
+                        openChatDirect(params.roleId);
+                    }
+                    break;
+                case 'startChatWithRole':
+                    if (params && params.roleId) {
+                        startChatWithRole(params.roleId);
+                    }
+                    break;
+                default:
+                    console.warn('未知的待处理操作:', action);
+                    break;
+            }
+        }
 
         // 更新URL锚点
         function updateUrlHash() {
@@ -2764,6 +2810,7 @@
         // 创建角色
         function createRole() {
             if (!isLoggedIn) {
+                setPendingAction('createRole');
                 showAuthModal();
                 return;
             }
@@ -3102,6 +3149,7 @@
         // 选择角色
         async function selectRole(roleId) {
             if (!isLoggedIn) {
+                setPendingAction('selectRole', { roleId: roleId });
                 showAuthModal();
                 return;
             }
@@ -3113,10 +3161,26 @@
         // 打开对话
         async function openChat(roleId) {
             if (!isLoggedIn) {
+                setPendingAction('openChat', { roleId: roleId });
                 showAuthModal();
                 return;
             }
 
+            try {
+                // 确保角色列表已加载
+                if (roles.length === 0) {
+                    await loadRoles();
+                }
+
+                showChatPage(roleId);
+            } catch (error) {
+                console.error('打开对话失败:', error);
+                alert('打开对话失败: ' + error.message);
+            }
+        }
+
+        // 直接打开聊天（用于登录后自动执行）
+        async function openChatDirect(roleId) {
             try {
                 // 确保角色列表已加载
                 if (roles.length === 0) {
@@ -3386,6 +3450,9 @@
 
                     // 加载最近对话
                     await loadRecentChats();
+
+                    // 执行登录后的待处理操作
+                    executePendingAction();
 
                     alert('登录成功！');
                 } else {
@@ -4150,6 +4217,7 @@
             console.log('当前登录状态:', isLoggedIn);
 
             if (!isLoggedIn) {
+                setPendingAction('startChatWithRole', { roleId: roleId });
                 showAuthModal();
                 return;
             }
