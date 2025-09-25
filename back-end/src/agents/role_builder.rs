@@ -193,7 +193,7 @@ impl RoleBuilder {
 要求：
 - 给出角色设定的性别，值为“male”和“female”。用`<gender></gender>`包裹。
 - 给出角色设定的声音类型，值为“mature”和“young”。用`<voice-type></voice-type>`包裹。
-- 用中文概述人物设定，需要包含人物性别和年纪大小。用`<description></description>`包裹。
+- 用中文概述人物设定，附上英文对照，需要包含人物性别和年纪大小。用`<description></description>`包裹。
 - 列出“说话风格/互动规则/可谈话题/回避事项”，并给出 3 条示例口癖或措辞模板（中文）。用`<traits></traits>`包裹。
 - 控制在 250~400 字，适合作为 system。
 - 你的回复必须是xml格式，且只能包含上述四个标签，且每个标签只能出现一次，且标签内不能嵌套其他标签。

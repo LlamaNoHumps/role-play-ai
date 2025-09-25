@@ -3,12 +3,12 @@ pub mod models;
 pub mod status;
 
 use anyhow::Result;
+use models::roles::{Column, Entity, Gender, VoiceType};
 use sea_orm::{
     ActiveValue::{self, Set},
     ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, QueryFilter,
+    sea_query::Expr,
 };
-
-use models::roles::{Gender, VoiceType};
 
 const DB_NAME: &str = "role-play-ai";
 
@@ -215,6 +215,22 @@ impl Database {
 
     pub async fn list_roles(&self) -> Result<Vec<models::roles::Model>> {
         let roles = models::roles::Entity::find().all(&self.connection).await?;
+
+        Ok(roles)
+    }
+
+    pub async fn search_roles(&self, keyword: &str) -> Result<Vec<models::roles::Model>> {
+        let keyword = format!("%{}%", keyword);
+
+        let roles = Entity::find()
+            .filter(
+                Expr::col(Column::Name)
+                    .like(&keyword)
+                    .or(Expr::col(Column::Description).like(&keyword))
+                    .or(Expr::col(Column::Traits).like(&keyword)),
+            )
+            .all(&self.connection)
+            .await?;
 
         Ok(roles)
     }

@@ -100,6 +100,10 @@ pub async fn run() {
             get(handlers::role::list::handler),
         )
         .route(
+            handlers::role::search::PATH,
+            get(handlers::role::search::handler),
+        )
+        .route(
             handlers::conversation::new::PATH,
             post(handlers::conversation::new::handler),
         )
