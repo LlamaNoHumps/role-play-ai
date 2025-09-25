@@ -421,6 +421,26 @@
             box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
         }
 
+        .delete-role-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 4px;
+            background: #95a5a6;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .delete-role-btn:hover {
+            background: #e74c3c;
+            transform: scale(1.05);
+        }
+
         .role-name {
             font-size: 16px;
             font-weight: 600;
@@ -2443,6 +2463,7 @@
                     if (data && data.items && Array.isArray(data.items)) {
                         const newRoles = data.items.map(role => ({
                             id: String(role.role_id),
+                            user_id: role.user_id,
                             name: role.name,
                             description: role.description,
                             traits: role.traits,
@@ -2857,6 +2878,9 @@
             }
 
             const roleCardsHtml = rolesToRender.map(role => {
+                // 调试信息
+                console.log('渲染角色:', role.name, 'user_id:', role.user_id, 'currentUser:', currentUser);
+
                 // 处理角色图片显示
                 let roleImageContent = '';
                 if (role.image_url) {
@@ -2886,6 +2910,20 @@
                             <button class="chat-role-btn" onclick="event.stopPropagation(); startChatWithRole('${role.id}')" title="开始对话">
                                 💬
                             </button>
+                            ${(() => {
+                        const canDelete = currentUser && role.user_id === currentUser.id;
+                        console.log(`角色 ${role.name} 删除权限检查:`, 'currentUser:', currentUser, 'role.user_id:', role.user_id, 'canDelete:', canDelete);
+                        return canDelete ? `
+                            <button class="delete-role-btn" onclick="event.stopPropagation(); deleteRole('${role.id}')" title="删除角色">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3,6 5,6 21,6"></polyline>
+                                    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                </svg>
+                            </button>
+                            ` : '';
+                    })()}
                         </div>
                     </div>
                 `;
@@ -3374,6 +3412,7 @@
                         'Authorization': `Bearer ${localStorage.getItem('authToken')}`
                     },
                     body: JSON.stringify({
+                        user_id: currentUser.id,
                         name: name,
                         description: description,
                         traits: traits,
@@ -4623,6 +4662,58 @@
             } catch (error) {
                 console.error('删除对话错误:', error);
                 alert('删除对话失败：' + error.message);
+            }
+        }
+
+        // 删除角色
+        async function deleteRole(roleId) {
+            if (!confirm('确定要删除这个角色吗？删除后将无法恢复！')) {
+                return;
+            }
+
+            if (!currentUser?.id) {
+                alert('请先登录');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/role/delete/${roleId}/${currentUser.id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('删除角色失败');
+                }
+
+                console.log('角色删除成功');
+
+                // 如果删除的是当前正在聊天的角色，则清空聊天界面
+                if (currentChatRole && currentChatRole.id === parseInt(roleId)) {
+                    currentChatRole = null;
+                    chatMessages = [];
+                    renderChatMessages();
+
+                    // 隐藏聊天界面，显示主页
+                    const chatPageNew = document.getElementById('chatPageNew');
+                    const mainPage = document.querySelector('.main-page');
+                    if (chatPageNew) chatPageNew.style.display = 'none';
+                    if (mainPage) mainPage.style.display = 'block';
+                }
+
+                // 重新加载角色列表
+                await loadRoles();
+
+                // 重新加载最近对话列表（删除角色可能会影响对话列表）
+                await loadRecentChats();
+
+                alert('角色删除成功');
+            } catch (error) {
+                console.error('删除角色错误:', error);
+                alert('删除角色失败：' + error.message);
             }
         }
 

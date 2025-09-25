@@ -284,6 +284,7 @@ impl Database {
 
     pub async fn add_role(
         &self,
+        user_id: i32,
         name: &str,
         description: &str,
         traits: &str,
@@ -293,6 +294,7 @@ impl Database {
     ) -> Result<i32> {
         let role = models::roles::ActiveModel {
             id: ActiveValue::default(),
+            user_id: Set(user_id),
             name: Set(name.to_string()),
             description: Set(description.to_string()),
             traits: Set(traits.to_string()),
@@ -391,6 +393,26 @@ impl Database {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn delete_role(&self, role_id: i32, user_id: i32) -> Result<bool> {
+        let role = models::roles::Entity::find_by_id(role_id)
+            .one(&self.connection)
+            .await?;
+
+        if let Some(role) = role {
+            if role.user_id != user_id {
+                return Ok(false);
+            }
+
+            models::roles::Entity::delete_by_id(role_id)
+                .exec(&self.connection)
+                .await?;
+
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 }
 
