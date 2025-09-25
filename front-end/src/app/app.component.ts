@@ -17,4 +17,6 @@ import { RouterLink } from '@angular/router';
 export class AppComponent {
   constructor(public auth: AuthService, private router: Router) {}
   logout() { this.auth.logout(); this.router.navigateByUrl('/auth/login'); }
+  title = 'front-end';
+
 }

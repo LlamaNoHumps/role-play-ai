@@ -1,0 +1,3409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角色扮演AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            width: 100%;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            overflow: hidden;
+        }
+
+        /* 左侧边栏 */
+        .sidebar {
+            width: 280px;
+            background: #2c3e50;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            height: 100vh;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #34495e;
+            flex-shrink: 0;
+        }
+
+        .create-role-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .create-role-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .recent-chats {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .recent-chats h3 {
+            margin-bottom: 15px;
+            color: #bdc3c7;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .chat-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .chat-item:hover {
+            background: #34495e;
+        }
+
+        .chat-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .chat-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chat-name {
+            font-weight: 500;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-preview {
+            font-size: 12px;
+            color: #95a5a6;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 2px;
+        }
+
+        .no-chats {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 12px;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        /* 右侧主要内容区 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 顶部栏 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: white;
+            border-bottom: 1px solid #ecf0f1;
+            flex-shrink: 0;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .welcome-text {
+            font-size: 16px;
+            color: #2c3e50;
+        }
+
+        .login-btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(46, 204, 113, 0.3);
+        }
+
+        .search-container {
+            position: relative;
+        }
+
+        .search-input {
+            padding: 10px 16px;
+            padding-right: 40px;
+            border: 2px solid #ecf0f1;
+            border-radius: 20px;
+            outline: none;
+            width: 300px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.2);
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            color: #7f8c8d;
+        }
+
+        /* 角色卡片区域 */
+        .content-area {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .roles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .role-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .role-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .role-image {
+            width: 100%;
+            height: 160px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+            font-weight: bold;
+        }
+
+        .role-info {
+            padding: 15px;
+            flex: 1;
+        }
+
+        .role-actions {
+            padding: 0 15px 15px 15px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .chat-role-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+        }
+
+        .chat-role-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+        }
+
+        .role-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .role-description {
+            font-size: 12px;
+            color: #7f8c8d;
+            line-height: 1.4;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #7f8c8d;
+        }
+
+        .empty-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        /* 登录/注册模态框 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .auth-modal {
+            background: white;
+            border-radius: 16px;
+            width: 420px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 30px 30px 20px;
+            text-align: center;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin: 20px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            border: none;
+            background: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+
+        .auth-tab.active {
+            background: white;
+            color: #2c3e50;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-body {
+            padding: 20px 30px 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            outline: none;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.2);
+        }
+
+        .form-input.error {
+            border-color: #e74c3c;
+            box-shadow: 0 0 10px rgba(231, 76, 60, 0.2);
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .avatar-upload {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .avatar-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid #ecf0f1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #f8f9fa;
+        }
+
+        .avatar-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar-preview-text {
+            font-size: 24px;
+            color: #7f8c8d;
+        }
+
+        .avatar-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .avatar-btn {
+            padding: 8px 16px;
+            border: 1px solid #3498db;
+            border-radius: 6px;
+            background: white;
+            color: #3498db;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .avatar-btn:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        .avatar-btn.primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .avatar-btn.primary:hover {
+            background: #2980b9;
+        }
+
+        .default-avatars {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .default-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid #ecf0f1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-size: 20px;
+        }
+
+        .default-avatar:hover {
+            transform: scale(1.1);
+            border-color: #3498db;
+        }
+
+        .default-avatar.selected {
+            border-color: #3498db;
+            transform: scale(1.1);
+        }
+
+        #avatarInput {
+            display: none;
+        }
+
+        .auth-submit {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .auth-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        .auth-submit:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7f8c8d;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        /* 创建角色页面 */
+        .create-role-page {
+            display: none;
+        }
+
+        .create-role-page.active {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100vh;
+        }
+
+        .create-role-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: white;
+            border-bottom: 1px solid #ecf0f1;
+            width: 100%;
+            box-sizing: border-box;
+            flex-shrink: 0;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .back-btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(127, 140, 141, 0.3);
+        }
+
+        .create-role-content {
+            flex: 1;
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+            background: white;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .role-form {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            position: relative;
+            z-index: 1;
+            overflow: visible;
+            box-sizing: border-box;
+        }
+
+        .role-form * {
+            box-sizing: border-box;
+        }
+
+        .role-form::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            border-radius: 12px;
+            z-index: -1;
+        }
+
+        .role-avatar-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .role-avatar-preview {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 3px solid #ecf0f1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #f8f9fa;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .role-avatar-preview:hover {
+            border-color: #3498db;
+            transform: scale(1.05);
+        }
+
+        .role-avatar-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .role-avatar-text {
+            font-size: 48px;
+            color: #7f8c8d;
+        }
+
+        .avatar-upload-hint {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 12px;
+            padding: 4px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .role-avatar-preview:hover .avatar-upload-hint {
+            opacity: 1;
+        }
+
+        .role-default-avatars {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+            justify-items: center;
+        }
+
+        .role-default-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid #ecf0f1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-size: 24px;
+        }
+
+        .role-default-avatar:hover {
+            transform: scale(1.1);
+            border-color: #3498db;
+        }
+
+        .role-default-avatar.selected {
+            border-color: #3498db;
+            border-width: 3px;
+            transform: scale(1.1);
+        }
+
+        .role-input-group {
+            margin-bottom: 25px;
+        }
+
+        .role-input-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .role-input-main {
+            flex: 1;
+        }
+
+        .auto-fill-btn {
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 28px;
+        }
+
+        .auto-fill-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .auto-fill-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .role-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            outline: none;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+            transition: all 0.3s ease;
+        }
+
+        .role-textarea:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.2);
+        }
+
+        .role-textarea.error {
+            border-color: #e74c3c;
+            box-shadow: 0 0 10px rgba(231, 76, 60, 0.2);
+        }
+
+        .create-submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 6px 20px rgba(46, 204, 113, 0.3);
+            position: relative;
+            z-index: 10;
+        }
+
+        .create-submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(46, 204, 113, 0.5);
+            background: linear-gradient(135deg, #229954, #27ae60);
+        }
+
+        .create-submit-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 8px rgba(189, 195, 199, 0.3);
+        }
+
+        #roleAvatarInput {
+            display: none;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                height: 100vh;
+                overflow: hidden;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: 200px;
+                flex-shrink: 0;
+            }
+
+            .main-content {
+                flex: 1;
+                overflow: hidden;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+
+            .search-input {
+                width: 100%;
+            }
+
+            .roles-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 15px;
+            }
+
+            .content-area {
+                padding: 20px;
+                overflow-y: auto;
+                overflow-x: hidden;
+            }
+
+            .auth-modal {
+                width: 95vw;
+            }
+
+            .modal-body {
+                padding: 15px 20px 25px;
+            }
+
+            .modal-header {
+                padding: 20px 20px 15px;
+            }
+        }
+
+        /* 新聊天页面样式 */
+        .chat-content {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            /* 明确设置高度 */
+        }
+
+        .chat-messages {
+            padding: 20px 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: #f8f9fa;
+            height: calc(100vh - 160px);
+            /* 调整：头部约80px + 输入框约80px */
+            max-height: calc(100vh - 160px);
+            /* 确保不会超过设定高度 */
+            flex-shrink: 0;
+            /* 防止被压缩 */
+            box-sizing: border-box;
+            /* 包含padding在内 */
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            max-width: 70%;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+            align-self: flex-end;
+        }
+
+        .message.role {
+            align-self: flex-start;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .message-avatar.user {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .message-avatar.role {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+
+        .message-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .message-content {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 18px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .message.role .message-content {
+            background: white;
+            color: #2c3e50;
+        }
+
+        .message-voice {
+            margin-top: 8px;
+        }
+
+        .message-voice audio {
+            width: 100%;
+            max-width: 300px;
+            height: 30px;
+        }
+
+        .chat-input {
+            padding: 15px 30px;
+            background: white;
+            border-top: 1px solid #ecf0f1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .message-input {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            padding: 12px 20px;
+            font-size: 16px;
+            outline: none;
+            resize: none;
+            min-height: 24px;
+            max-height: 120px;
+            line-height: 1.4;
+            overflow-y: auto;
+        }
+
+        .message-input:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+        }
+
+        .voice-btn,
+        .send-btn {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .voice-btn {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+
+        .voice-btn:hover,
+        .send-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .send-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .chat-empty {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #7f8c8d;
+            text-align: center;
+        }
+
+        .chat-empty-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .chat-empty-text {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .chat-empty-hint {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .role-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .role-avatar-chat {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .role-avatar-chat img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .role-name-chat {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        /* 对话页面样式 */
+        .chat-page {
+            display: none;
+            width: 100%;
+            height: 100vh;
+            background: #ecf0f1;
+        }
+
+        .chat-page.active {
+            display: flex;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            background: white;
+            border-bottom: 1px solid #ecf0f1;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .role-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .role-avatar-chat {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .role-avatar-chat img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .role-name-chat {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .chat-back-btn {
+            margin-left: auto;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .chat-back-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            max-width: 70%;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+            align-self: flex-end;
+        }
+
+        .message.role {
+            align-self: flex-start;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .message-avatar.user {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .message-avatar.role {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
+
+        .message-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .message-content {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 18px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .message.role .message-content {
+            background: white;
+            color: #2c3e50;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        .chat-input {
+            padding: 15px 20px;
+            background: white;
+            border-top: 1px solid #ecf0f1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .message-input {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            padding: 12px 20px;
+            font-size: 16px;
+            outline: none;
+            resize: none;
+            min-height: 24px;
+            max-height: 120px;
+            line-height: 1.4;
+            overflow-y: auto;
+        }
+
+        .message-input:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+        }
+
+        .voice-btn {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .voice-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+        }
+
+        .voice-btn:active {
+            transform: scale(0.95);
+        }
+
+        .send-btn {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .send-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 聊天记录为空时的提示 */
+        .chat-empty {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #7f8c8d;
+            text-align: center;
+        }
+
+        .chat-empty-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .chat-empty-text {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .chat-empty-hint {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        /* 最近对话角色列表 */
+        .recent-roles {
+            flex: 1;
+            overflow-y: auto;
+            padding-top: 10px;
+        }
+
+        /* 最近聊天角色项样式 */
+        .recent-role-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            margin: 5px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: transparent;
+        }
+
+        .recent-role-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .recent-role-item.active {
+            background: rgba(52, 152, 219, 0.2);
+            border: 1px solid rgba(52, 152, 219, 0.3);
+        }
+
+        .recent-role-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            flex-shrink: 0;
+            margin-right: 12px;
+        }
+
+        .recent-role-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .recent-role-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .recent-role-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .recent-role-desc {
+            font-size: 12px;
+            color: #7f8c8d;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 响应式适配 */
+        @media (max-width: 768px) {
+            .create-role-page.active {
+                width: 100%;
+                height: 100vh;
+            }
+
+            .create-role-header {
+                padding: 15px 20px;
+            }
+
+            .create-role-content {
+                padding: 20px;
+                overflow-y: auto;
+                overflow-x: hidden;
+            }
+
+            .role-form {
+                max-width: 100%;
+                padding: 20px;
+                position: relative;
+                z-index: 1;
+                overflow: visible;
+                box-sizing: border-box;
+            }
+
+            .role-form::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: white;
+                border-radius: 12px;
+                z-index: -1;
+            }
+
+            .chat-content {
+                height: 100%;
+            }
+
+            .chat-messages {
+                padding: 15px;
+                height: calc(100vh - 120px);
+                /* 移动端固定高度 */
+                max-height: calc(100vh - 120px);
+                /* 确保不会超过设定高度 */
+                flex-shrink: 0;
+                /* 防止被压缩 */
+                box-sizing: border-box;
+                /* 包含padding在内 */
+            }
+
+            .message {
+                max-width: 85%;
+            }
+
+            .chat-header {
+                padding: 10px 15px;
+            }
+
+            .role-avatar-chat {
+                width: 40px;
+                height: 40px;
+                font-size: 20px;
+            }
+
+            .role-name-chat {
+                font-size: 18px;
+            }
+
+            .message-avatar {
+                width: 35px;
+                height: 35px;
+                font-size: 18px;
+            }
+
+            .message-input {
+                font-size: 16px;
+                padding: 10px 16px;
+            }
+
+            .voice-btn,
+            .send-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 左侧边栏 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <button class="create-role-btn" onclick="createRole()">
+                    <span>➕</span>
+                    创建角色
+                </button>
+            </div>
+
+            <div class="recent-chats">
+                <h3>最近对话</h3>
+                <div id="chatList">
+                    <div class="no-chats">登录后查看对话记录</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧主要内容区 -->
+        <div class="main-content">
+            <!-- 顶部栏 -->
+            <div class="header">
+                <div class="user-info" id="userInfo">
+                    <!-- 已登录状态 -->
+                    <div class="user-avatar">用</div>
+                    <span class="welcome-text">欢迎，用户名</span>
+
+                    <!-- 未登录状态 -->
+                    <!-- <button class="login-btn" onclick="login()">登录</button> -->
+                </div>
+
+                <div class="search-container">
+                    <input type="text" class="search-input" placeholder="搜索角色..." id="searchInput"
+                        oninput="searchRoles()">
+                    <button class="search-btn">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 角色卡片区域 -->
+            <div class="content-area">
+                <div class="roles-grid" id="rolesGrid">
+                    <!-- 示例角色卡片 -->
+                    <div class="role-card" onclick="selectRole('princess')">
+                        <div class="role-image">👑</div>
+                        <div class="role-info">
+                            <div class="role-name">艾莉娅公主</div>
+                            <div class="role-description">来自魔法王国的优雅公主，善良聪慧，拥有强大的魔法力量</div>
+                        </div>
+                    </div>
+
+                    <div class="role-card" onclick="selectRole('assistant')">
+                        <div class="role-image">🤖</div>
+                        <div class="role-info">
+                            <div class="role-name">智能助手</div>
+                            <div class="role-description">专业的AI助手，可以帮助您解决各种问题和提供建议</div>
+                        </div>
+                    </div>
+
+                    <div class="role-card" onclick="selectRole('catgirl')">
+                        <div class="role-image">🐱</div>
+                        <div class="role-info">
+                            <div class="role-name">猫娘女仆</div>
+                            <div class="role-description">可爱的猫娘女仆，温柔体贴，会照顾主人的日常生活</div>
+                        </div>
+                    </div>
+
+                    <div class="role-card" onclick="selectRole('detective')">
+                        <div class="role-image">🕵️</div>
+                        <div class="role-info">
+                            <div class="role-name">名侦探</div>
+                            <div class="role-description">敏锐的观察力和逻辑思维，擅长解决各种神秘案件</div>
+                        </div>
+                    </div>
+
+                    <div class="role-card" onclick="selectRole('wizard')">
+                        <div class="role-image">🧙‍♂️</div>
+                        <div class="role-info">
+                            <div class="role-name">古老法师</div>
+                            <div class="role-description">拥有千年智慧的法师，掌握着古老而强大的魔法知识</div>
+                        </div>
+                    </div>
+
+                    <div class="role-card" onclick="selectRole('teacher')">
+                        <div class="role-image">👩‍🏫</div>
+                        <div class="role-info">
+                            <div class="role-name">温柔老师</div>
+                            <div class="role-description">耐心温和的老师，擅长教学和引导学生思考</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 创建角色页面 -->
+            <div class="create-role-page" id="createRolePage">
+                <div class="create-role-header">
+                    <h2 class="page-title">创建新角色</h2>
+                    <button class="back-btn" onclick="backToHome()">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path
+                                d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm3.5 6L9.207 7.293a1 1 0 0 0 0 1.414L11.5 10l-.707.707L9.207 9.121a1 1 0 0 0-1.414 0L6.207 10.707L5.5 10l2.293-1.586a1 1 0 0 0 0-1.414L5.5 6l.707-.707L7.793 6.879a1 1 0 0 0 1.414 0L11.5 5.293 11.5 6z" />
+                        </svg>
+                        返回
+                    </button>
+                </div>
+
+                <div class="create-role-content">
+                    <form class="role-form" id="roleForm">
+                        <!-- 角色头像部分 -->
+                        <div class="role-avatar-section">
+                            <div class="role-avatar-preview" id="roleAvatarPreview" onclick="uploadRoleAvatar()">
+                                <div class="role-avatar-text">🎭</div>
+                                <div class="avatar-upload-hint">点击上传头像</div>
+                            </div>
+                            <input type="file" id="roleAvatarInput" accept="image/*"
+                                onchange="handleRoleAvatarUpload(event)">
+
+                            <div class="role-default-avatars">
+                                <div class="role-default-avatar selected" data-avatar="🎭"
+                                    onclick="chooseRoleDefaultAvatar('🎭')">🎭</div>
+                                <div class="role-default-avatar" data-avatar="👑"
+                                    onclick="chooseRoleDefaultAvatar('👑')">👑</div>
+                                <div class="role-default-avatar" data-avatar="🦸"
+                                    onclick="chooseRoleDefaultAvatar('🦸')">🦸</div>
+                                <div class="role-default-avatar" data-avatar="🧙"
+                                    onclick="chooseRoleDefaultAvatar('🧙')">🧙</div>
+                                <div class="role-default-avatar" data-avatar="🐱"
+                                    onclick="chooseRoleDefaultAvatar('🐱')">🐱</div>
+                                <div class="role-default-avatar" data-avatar="🤖"
+                                    onclick="chooseRoleDefaultAvatar('🤖')">🤖</div>
+                                <div class="role-default-avatar" data-avatar="🦄"
+                                    onclick="chooseRoleDefaultAvatar('🦄')">🦄</div>
+                                <div class="role-default-avatar" data-avatar="🐶"
+                                    onclick="chooseRoleDefaultAvatar('🐶')">🐶</div>
+                                <div class="role-default-avatar" data-avatar="🦊"
+                                    onclick="chooseRoleDefaultAvatar('🦊')">🦊</div>
+                                <div class="role-default-avatar" data-avatar="🐼"
+                                    onclick="chooseRoleDefaultAvatar('🐼')">🐼</div>
+                                <div class="role-default-avatar" data-avatar="👨‍🎓"
+                                    onclick="chooseRoleDefaultAvatar('👨‍🎓')">👨‍🎓</div>
+                                <div class="role-default-avatar" data-avatar="👩‍🏫"
+                                    onclick="chooseRoleDefaultAvatar('👩‍🏫')">👩‍🏫</div>
+                            </div>
+                        </div>
+
+                        <!-- 角色名称 -->
+                        <div class="role-input-group">
+                            <div class="role-input-row">
+                                <div class="role-input-main">
+                                    <label class="form-label" for="roleName">角色名称</label>
+                                    <input type="text" id="roleName" class="form-input" placeholder="请输入角色名称"
+                                        maxlength="50">
+                                    <div class="error-message" id="roleNameError"></div>
+                                </div>
+                                <button type="button" class="auto-fill-btn" onclick="autoFillDescription()"
+                                    id="autoFillBtn">
+                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                        <path
+                                            d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0zM9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1zM4.5 9a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1h-7zM4 10.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm.5 2.5a.5.5 0 0 1 0-1h4a.5.5 0 0 1 0 1h-4z" />
+                                    </svg>
+                                    自动填写
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 角色描述 -->
+                        <div class="role-input-group">
+                            <label class="form-label" for="roleDescription">角色描述</label>
+                            <textarea id="roleDescription" class="role-textarea" placeholder="请描述角色的背景、性格、外貌等基本信息..."
+                                maxlength="500"></textarea>
+                            <div class="error-message" id="roleDescriptionError"></div>
+                        </div>
+
+                        <!-- 角色特点 -->
+                        <div class="role-input-group">
+                            <label class="form-label" for="roleTraits">角色特点</label>
+                            <textarea id="roleTraits" class="role-textarea" placeholder="请描述角色的特点、技能、爱好、说话风格等..."
+                                maxlength="500"></textarea>
+                            <div class="error-message" id="roleTraitsError"></div>
+                        </div>
+
+                        <!-- 创建按钮 -->
+                        <button type="submit" class="create-submit-btn" id="createSubmitBtn">创建角色</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 聊天页面 -->
+        <div class="create-role-page" id="chatPageNew">
+            <div class="create-role-header">
+                <h2 class="page-title" id="currentRoleNameNew">选择一个角色开始对话</h2>
+                <button class="back-btn" onclick="backToHome()">返回主页</button>
+            </div>
+
+            <div class="chat-content">
+                <div class="chat-messages" id="chatMessagesNew">
+                    <div class="chat-empty" id="chatEmptyNew">
+                        <div class="chat-empty-icon">💬</div>
+                        <div class="chat-empty-text">还没有聊天记录</div>
+                        <div class="chat-empty-hint">选择一个角色开始有趣的对话吧！</div>
+                    </div>
+                </div>
+
+                <div class="chat-input">
+                    <textarea class="message-input" id="messageInputNew" placeholder="输入消息..." rows="1"
+                        onkeydown="handleInputKeydown(event)" oninput="adjustTextareaHeight(this)"></textarea>
+                    <button class="voice-btn" onclick="startVoiceInput()" title="语音输入">
+                        🎤
+                    </button>
+                    <button class="send-btn" id="sendBtnNew" onclick="sendMessage()" title="发送消息" disabled>
+                        ➤
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 登录/注册模态框 -->
+    <div class="modal-overlay" id="authModal">
+        <div class="auth-modal">
+            <button class="modal-close" onclick="closeAuthModal()">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path
+                        d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z" />
+                </svg>
+            </button>
+
+            <div class="modal-header">
+                <h2 class="modal-title">欢迎来到角色扮演AI</h2>
+                <div class="auth-tabs">
+                    <button class="auth-tab active" onclick="switchTab('login')" id="loginTab">登录</button>
+                    <button class="auth-tab" onclick="switchTab('register')" id="registerTab">注册</button>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <!-- 登录表单 -->
+                <form id="loginForm" style="display: block;">
+                    <div class="form-group">
+                        <label class="form-label" for="loginUsername">用户名</label>
+                        <input type="text" id="loginUsername" class="form-input" placeholder="请输入用户名">
+                        <div class="error-message" id="loginUsernameError"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="loginPassword">密码</label>
+                        <input type="password" id="loginPassword" class="form-input" placeholder="请输入密码">
+                        <div class="error-message" id="loginPasswordError"></div>
+                    </div>
+
+                    <button type="submit" class="auth-submit" id="loginSubmit">登录</button>
+                </form>
+
+                <!-- 注册表单 -->
+                <form id="registerForm" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label" for="registerUsername">用户名</label>
+                        <input type="text" id="registerUsername" class="form-input" placeholder="请输入用户名">
+                        <div class="error-message" id="registerUsernameError"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="registerPassword">密码</label>
+                        <input type="password" id="registerPassword" class="form-input" placeholder="请输入密码">
+                        <div class="error-message" id="registerPasswordError"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="confirmPassword">确认密码</label>
+                        <input type="password" id="confirmPassword" class="form-input" placeholder="请再次输入密码">
+                        <div class="error-message" id="confirmPasswordError"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">用户头像</label>
+                        <div class="avatar-upload">
+                            <div class="avatar-preview" id="avatarPreview">
+                                <div class="avatar-preview-text">👤</div>
+                            </div>
+                            <div class="avatar-actions">
+                                <button type="button" class="avatar-btn" onclick="selectDefaultAvatar()">选择默认头像</button>
+                                <button type="button" class="avatar-btn primary" onclick="uploadAvatar()">上传头像</button>
+                            </div>
+                            <input type="file" id="avatarInput" accept="image/*" onchange="handleAvatarUpload(event)">
+                        </div>
+
+                        <div class="default-avatars" id="defaultAvatars" style="display: none;">
+                            <div class="default-avatar" data-avatar="👤" onclick="chooseDefaultAvatar('👤')">👤</div>
+                            <div class="default-avatar" data-avatar="🎭" onclick="chooseDefaultAvatar('🎭')">🎭</div>
+                            <div class="default-avatar" data-avatar="🦄" onclick="chooseDefaultAvatar('🦄')">🦄</div>
+                            <div class="default-avatar" data-avatar="🐱" onclick="chooseDefaultAvatar('🐱')">🐱</div>
+                            <div class="default-avatar" data-avatar="🐶" onclick="chooseDefaultAvatar('🐶')">🐶</div>
+                            <div class="default-avatar" data-avatar="🦊" onclick="chooseDefaultAvatar('🦊')">🦊</div>
+                            <div class="default-avatar" data-avatar="🐼" onclick="chooseDefaultAvatar('🐼')">🐼</div>
+                            <div class="default-avatar" data-avatar="🐯" onclick="chooseDefaultAvatar('🐯')">🐯</div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="auth-submit" id="registerSubmit">注册</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 用户状态管理
+        let isLoggedIn = false; // 改为未登录状态
+        let currentUser = {
+            id: "",
+            name: "",
+            avatar: ""
+        };
+
+        // 当前选择的头像
+        let selectedAvatar = '👤';
+        let selectedAvatarType = 'default'; // 'default' 或 'custom'
+        let customAvatarFile = null;
+
+        // SHA-256 哈希函数
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hash = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hash))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+        }
+
+        // 角色数据
+        let roles = [];
+
+        // 加载角色列表
+        async function loadRoles() {
+            try {
+                const response = await fetch('/api/role/list', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('角色列表数据:', data);
+                    if (Array.isArray(data)) {
+                        roles = data.map(role => ({
+                            id: String(role.role_id), // 确保ID始终是字符串
+                            name: role.name,
+                            description: role.description,
+                            traits: role.traits,
+                            image_url: role.image_url,
+                            // 兼容性：如果image_url是emoji，设置emoji字段
+                            emoji: isEmoji(role.image_url) ? role.image_url : null
+                        }));
+                    } else {
+                        console.warn('角色列表格式错误，期望数组但收到:', data);
+                        roles = [];
+                    }
+                } else {
+                    console.warn('获取角色列表失败:', response.status);
+                    // 如果未登录或API不可用，使用默认角色数据
+                    roles = getDefaultRoles();
+                }
+            } catch (error) {
+                console.error('加载角色列表错误:', error);
+                // 网络错误时使用默认角色数据
+                roles = getDefaultRoles();
+            }
+        }
+
+        // 获取角色详情
+        async function getRoleDetails(roleId) {
+            try {
+                const response = await fetch(`/api/role/details?role_id=${parseInt(roleId)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return {
+                        name: data.name,
+                        description: data.description,
+                        traits: data.traits,
+                        image_url: data.image_url
+                    };
+                } else {
+                    console.warn('获取角色详情失败:', response.status);
+                    return null;
+                }
+            } catch (error) {
+                console.error('获取角色详情错误:', error);
+                return null;
+            }
+        }
+
+        // 检查是否为emoji
+        function isEmoji(str) {
+            if (!str || str.length > 4) return false;
+            const emojiRegex = /^[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1F018}-\u{1F270}]$/u;
+            return emojiRegex.test(str);
+        }
+
+        // 获取默认角色数据（作为fallback）
+        function getDefaultRoles() {
+            return [
+                {
+                    id: 'princess',
+                    name: '艾莉娅公主',
+                    emoji: '👑',
+                    image_url: '👑',
+                    description: '来自魔法王国的优雅公主，善良聪慧，拥有强大的魔法力量',
+                    traits: '优雅、善良、聪慧、魔法'
+                },
+                {
+                    id: 'assistant',
+                    name: '智能助手',
+                    emoji: '🤖',
+                    image_url: '🤖',
+                    description: '专业的AI助手，可以帮助您解决各种问题和提供建议',
+                    traits: '专业、高效、有帮助、智能'
+                },
+                {
+                    id: 'catgirl',
+                    name: '猫娘女仆',
+                    emoji: '🐱',
+                    image_url: '🐱',
+                    description: '可爱的猫娘女仆，温柔体贴，会照顾主人的日常生活',
+                    traits: '可爱、温柔、体贴、忠诚'
+                },
+                {
+                    id: 'detective',
+                    name: '名侦探',
+                    emoji: '🕵️',
+                    image_url: '🕵️',
+                    description: '敏锐的观察力和逻辑思维，擅长解决各种神秘案件',
+                    traits: '敏锐、逻辑、推理、神秘'
+                },
+                {
+                    id: 'wizard',
+                    name: '古老法师',
+                    emoji: '🧙‍♂️',
+                    image_url: '🧙‍♂️',
+                    description: '拥有千年智慧的法师，掌握着古老而强大的魔法知识',
+                    traits: '智慧、神秘、强大、古老'
+                },
+                {
+                    id: 'teacher',
+                    name: '温柔老师',
+                    emoji: '👩‍🏫',
+                    image_url: '👩‍🏫',
+                    description: '耐心温和的老师，擅长教学和引导学生思考',
+                    traits: '耐心、温和、教学、引导'
+                }
+            ];
+        }
+
+        // 初始化页面
+        async function initPage() {
+            // 检查本地存储的token，尝试恢复登录状态
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                try {
+                    const response = await fetch('/api/auth/verify', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const userData = await response.json();
+                        isLoggedIn = true;
+                        currentUser = {
+                            id: userData.user_id,
+                            name: userData.username,
+                            avatar: userData.avatar
+                        };
+                    } else {
+                        // Token无效，清除本地存储
+                        localStorage.removeItem('authToken');
+                        isLoggedIn = false;
+                    }
+                } catch (error) {
+                    console.error('验证token失败:', error);
+                    localStorage.removeItem('authToken');
+                    isLoggedIn = false;
+                }
+            }
+
+            updateUserInfo();
+            await loadRoles();
+            renderRoles(roles);
+
+            // 如果已登录，加载最近对话
+            if (isLoggedIn) {
+                await loadRecentChats();
+            }
+        }
+
+        // 更新用户信息显示
+        function updateUserInfo() {
+            const userInfo = document.getElementById('userInfo');
+            if (isLoggedIn) {
+                // 判断头像格式：URL、base64或表情符号
+                let avatarElement;
+                if (currentUser.avatar.startsWith('http') || currentUser.avatar.startsWith('/')) {
+                    // 图片URL
+                    avatarElement = `<img src="${currentUser.avatar}" alt="用户头像" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                } else if (currentUser.avatar.startsWith('data:image')) {
+                    // base64格式
+                    avatarElement = `<img src="${currentUser.avatar}" alt="用户头像" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                } else {
+                    // 表情符号
+                    avatarElement = currentUser.avatar;
+                }
+
+                userInfo.innerHTML = `
+                    <div class="user-avatar">${avatarElement}</div>
+                    <span class="welcome-text">欢迎，${currentUser.name}</span>
+                `;
+            } else {
+                userInfo.innerHTML = `
+                    <button class="login-btn" onclick="login()">登录</button>
+                `;
+            }
+        }        // 渲染角色卡片
+        function renderRoles(rolesToRender) {
+            const rolesGrid = document.getElementById('rolesGrid');
+            if (rolesToRender.length === 0) {
+                rolesGrid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <div class="empty-icon">🔍</div>
+                        <div class="empty-text">暂无角色</div>
+                    </div>
+                `;
+                return;
+            }
+
+            rolesGrid.innerHTML = rolesToRender.map(role => {
+                // 处理角色图片显示
+                let roleImageContent = '';
+                if (role.image_url) {
+                    if (isEmoji(role.image_url)) {
+                        // 如果是emoji，直接显示
+                        roleImageContent = role.image_url;
+                    } else {
+                        // 如果是URL，显示图片
+                        roleImageContent = `<img src="${role.image_url}" alt="${role.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">`;
+                    }
+                } else if (role.emoji) {
+                    // 兼容旧的emoji字段
+                    roleImageContent = role.emoji;
+                } else {
+                    // 默认头像
+                    roleImageContent = '🎭';
+                }
+
+                return `
+                    <div class="role-card">
+                        <div class="role-image" onclick="selectRole('${role.id}')">${roleImageContent}</div>
+                        <div class="role-info" onclick="selectRole('${role.id}')">
+                            <div class="role-name">${role.name}</div>
+                            <div class="role-description">${role.description}</div>
+                        </div>
+                        <div class="role-actions">
+                            <button class="chat-role-btn" onclick="event.stopPropagation(); startChatWithRole('${role.id}')" title="开始对话">
+                                💬
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 搜索角色
+        function searchRoles() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filteredRoles = roles.filter(role =>
+                role.name.toLowerCase().includes(searchTerm) ||
+                role.description.toLowerCase().includes(searchTerm) ||
+                (role.traits && role.traits.toLowerCase().includes(searchTerm))
+            );
+            renderRoles(filteredRoles);
+        }
+
+        // 当前页面状态
+        let currentPage = 'home'; // 'home', 'create-role', 'chat'
+
+        // 角色创建相关变量
+        let selectedRoleAvatar = '🎭';
+        let selectedRoleAvatarType = 'default';
+        let customRoleAvatarFile = null;
+
+        // 创建角色
+        function createRole() {
+            if (!isLoggedIn) {
+                showAuthModal();
+                return;
+            }
+            showCreateRolePage();
+        }
+
+        // 显示创建角色页面
+        function showCreateRolePage() {
+            currentPage = 'create-role';
+            document.querySelector('.header').style.display = 'none';
+            document.querySelector('.content-area').style.display = 'none';
+            document.getElementById('chatPageNew').classList.remove('active');
+            document.getElementById('createRolePage').classList.add('active');
+
+            // 重置表单，确保每次打开都是干净的
+            resetRoleForm();
+        }
+
+        // 重置角色表单
+        function resetRoleForm() {
+            document.getElementById('roleForm').reset();
+            selectedRoleAvatar = '🎭';
+            selectedRoleAvatarType = 'default';
+            customRoleAvatarFile = null;
+            updateRoleAvatarPreview();
+            clearErrors(['roleNameError', 'roleDescriptionError', 'roleTraitsError']);
+
+            // 重置默认头像选中状态
+            document.querySelectorAll('.role-default-avatar').forEach(el => {
+                el.classList.remove('selected');
+            });
+            document.querySelector('[data-avatar="🎭"]').classList.add('selected');
+        }
+
+        // 角色头像相关函数
+        function uploadRoleAvatar() {
+            document.getElementById('roleAvatarInput').click();
+        }
+
+        function handleRoleAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) { // 5MB限制
+                    alert('头像文件大小不能超过5MB');
+                    return;
+                }
+
+                if (!file.type.startsWith('image/')) {
+                    alert('请选择图片文件');
+                    return;
+                }
+
+                customRoleAvatarFile = file;
+                selectedRoleAvatarType = 'custom';
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    selectedRoleAvatar = e.target.result;
+                    updateRoleAvatarPreview();
+                };
+                reader.readAsDataURL(file);
+
+                // 清除默认头像选中状态
+                document.querySelectorAll('.role-default-avatar').forEach(el => {
+                    el.classList.remove('selected');
+                });
+            }
+        }
+
+        function chooseRoleDefaultAvatar(avatar) {
+            selectedRoleAvatar = avatar;
+            selectedRoleAvatarType = 'default';
+            customRoleAvatarFile = null;
+            updateRoleAvatarPreview();
+
+            // 更新选中状态
+            document.querySelectorAll('.role-default-avatar').forEach(el => {
+                el.classList.remove('selected');
+            });
+            document.querySelector(`[data-avatar="${avatar}"]`).classList.add('selected');
+        }
+
+        function updateRoleAvatarPreview() {
+            const preview = document.getElementById('roleAvatarPreview');
+            if (selectedRoleAvatarType === 'custom') {
+                preview.innerHTML = `
+                    <img src="${selectedRoleAvatar}" alt="角色头像">
+                    <div class="avatar-upload-hint">点击更换头像</div>
+                `;
+            } else {
+                preview.innerHTML = `
+                    <div class="role-avatar-text">${selectedRoleAvatar}</div>
+                    <div class="avatar-upload-hint">点击上传头像</div>
+                `;
+            }
+        }
+
+        // 自动填写描述和特点
+        let currentAutoFillController = null; // 用于存储当前请求的controller
+
+        async function autoFillDescription() {
+            const roleName = document.getElementById('roleName').value.trim();
+
+            if (!roleName) {
+                showError('roleNameError', '请先输入角色名称');
+                return;
+            }
+
+            const btn = document.getElementById('autoFillBtn');
+            const originalHTML = btn.innerHTML;
+
+            // 如果有正在进行的请求，先取消它
+            if (currentAutoFillController) {
+                currentAutoFillController.abort();
+            }
+
+            // 创建新的AbortController
+            currentAutoFillController = new AbortController();
+
+            // 更新按钮状态为生成中，并添加取消功能
+            btn.onclick = () => {
+                if (currentAutoFillController) {
+                    currentAutoFillController.abort();
+                    currentAutoFillController = null;
+                }
+                resetAutoFillButton(btn, originalHTML);
+            };
+            btn.innerHTML = `
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <circle cx="8" cy="8" r="3" opacity="0.3"/>
+                    <path d="M8 0 A8 8 0 0 1 8 16 A8 8 0 0 1 8 0" opacity="0.8">
+                        <animateTransform attributeName="transform" type="rotate" dur="1s" repeatCount="indefinite" values="0 8 8;360 8 8"/>
+                    </path>
+                </svg>
+                生成中... (点击取消)
+            `;
+
+            try {
+                // 获取当前已填写的内容（可选）
+                const currentDescription = document.getElementById('roleDescription').value.trim();
+                const currentTraits = document.getElementById('roleTraits').value.trim();
+
+                // 调用AI生成接口，不设置超时限制
+                const response = await fetch('/api/role/auto-fill', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: roleName,
+                        description: currentDescription || undefined,
+                        traits: currentTraits || undefined
+                    }),
+                    signal: currentAutoFillController.signal
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // 直接使用返回的description和traits
+                    if (data.description) {
+                        document.getElementById('roleDescription').value = data.description;
+                    }
+                    if (data.traits) {
+                        document.getElementById('roleTraits').value = data.traits;
+                    }
+                } else {
+                    alert('自动填写失败，请手动填写');
+                }
+            } catch (error) {
+                console.error('自动填写错误:', error);
+                if (error.name === 'AbortError') {
+                    console.log('请求已被用户取消');
+                } else {
+                    alert('网络错误或AI生成超时，请稍后重试');
+                }
+            } finally {
+                resetAutoFillButton(btn, originalHTML);
+                currentAutoFillController = null;
+            }
+        }
+
+        // 重置自动填写按钮状态
+        function resetAutoFillButton(btn, originalHTML) {
+            btn.innerHTML = originalHTML;
+            btn.onclick = autoFillDescription;
+        }
+
+        // 角色表单验证
+        function validateRoleForm() {
+            let isValid = true;
+            const name = document.getElementById('roleName').value.trim();
+            const description = document.getElementById('roleDescription').value.trim();
+            const traits = document.getElementById('roleTraits').value.trim();
+
+            clearErrors(['roleNameError', 'roleDescriptionError', 'roleTraitsError']);
+
+            if (!name) {
+                showError('roleNameError', '请输入角色名称');
+                isValid = false;
+            } else if (name.length < 2) {
+                showError('roleNameError', '角色名称至少2个字符');
+                isValid = false;
+            }
+
+            if (!description) {
+                showError('roleDescriptionError', '请输入角色描述');
+                isValid = false;
+            } else if (description.length < 20) {
+                showError('roleDescriptionError', '角色描述至少20个字符');
+                isValid = false;
+            }
+
+            if (!traits) {
+                showError('roleTraitsError', '请输入角色特点');
+                isValid = false;
+            } else if (traits.length < 20) {
+                showError('roleTraitsError', '角色特点至少20个字符');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // 处理角色创建
+        async function handleRoleCreate(event) {
+            event.preventDefault();
+
+            if (!validateRoleForm()) return;
+
+            const name = document.getElementById('roleName').value.trim();
+            const description = document.getElementById('roleDescription').value.trim();
+            const traits = document.getElementById('roleTraits').value.trim();
+
+            const submitBtn = document.getElementById('createSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '创建中...';
+
+            try {
+                let avatar = null;
+
+                // 处理头像
+                if (selectedRoleAvatarType === 'default' && selectedRoleAvatar) {
+                    avatar = selectedRoleAvatar;
+                } else if (selectedRoleAvatarType === 'custom' && customRoleAvatarFile) {
+                    // 如果是自定义头像，先上传头像获取file_url
+                    const uploadResponse = await fetch('/api/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                            'X-File-Name': customRoleAvatarFile.name,
+                            'Content-Type': customRoleAvatarFile.type || 'application/octet-stream'
+                        },
+                        body: customRoleAvatarFile
+                    });
+
+                    if (uploadResponse.ok) {
+                        const uploadData = await uploadResponse.json();
+                        avatar = uploadData.file_url;
+                    } else {
+                        throw new Error('头像上传失败');
+                    }
+                }
+
+                // 创建角色请求
+                const response = await fetch('/api/role/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        description: description,
+                        traits: traits,
+                        avatar: avatar
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.role_id) {
+                    // 创建成功
+                    alert('角色创建成功！');
+
+                    // 清空表单
+                    resetRoleForm();
+
+                    // 重新加载角色列表以获取最新数据
+                    await loadRoles();
+
+                    // 返回主页并刷新角色列表
+                    backToHome();
+                    renderRoles(roles);
+                } else {
+                    // 创建失败
+                    alert(data.message || '角色创建失败');
+                }
+            } catch (error) {
+                console.error('创建角色错误:', error);
+                alert('创建失败：' + (error.message || '网络错误，请稍后重试'));
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '创建角色';
+            }
+        }
+
+        // 选择角色
+        async function selectRole(roleId) {
+            if (!isLoggedIn) {
+                showAuthModal();
+                return;
+            }
+
+            // 直接导航到聊天页面
+            startChatWithRole(roleId);
+        }
+
+        // 打开对话
+        async function openChat(roleId) {
+            if (!isLoggedIn) {
+                showAuthModal();
+                return;
+            }
+
+            try {
+                // 确保角色列表已加载
+                if (roles.length === 0) {
+                    await loadRoles();
+                }
+
+                showChatPage(roleId);
+            } catch (error) {
+                console.error('打开对话失败:', error);
+                alert('打开对话失败: ' + error.message);
+            }
+        }
+
+        // 登录功能
+        function login() {
+            showAuthModal();
+        }
+
+        // 显示认证模态框
+        function showAuthModal() {
+            document.getElementById('authModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 关闭认证模态框
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+            resetForms();
+        }
+
+        // 切换登录/注册标签
+        function switchTab(tab) {
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+
+            if (tab === 'login') {
+                loginTab.classList.add('active');
+                registerTab.classList.remove('active');
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+            } else {
+                loginTab.classList.remove('active');
+                registerTab.classList.add('active');
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+            }
+            resetForms();
+        }
+
+        // 重置表单
+        function resetForms() {
+            // 重置登录表单
+            document.getElementById('loginForm').reset();
+            clearErrors(['loginUsernameError', 'loginPasswordError']);
+
+            // 重置注册表单
+            document.getElementById('registerForm').reset();
+            clearErrors(['registerUsernameError', 'registerPasswordError', 'confirmPasswordError']);
+
+            // 重置头像选择
+            selectedAvatar = '👤';
+            selectedAvatarType = 'default';
+            customAvatarFile = null;
+            updateAvatarPreview();
+            hideDefaultAvatars();
+        }
+
+        // 清除错误信息
+        function clearErrors(errorIds) {
+            errorIds.forEach(id => {
+                const errorElement = document.getElementById(id);
+                errorElement.textContent = '';
+                errorElement.classList.remove('show');
+
+                const input = errorElement.previousElementSibling;
+                if (input && (input.classList.contains('form-input') || input.classList.contains('role-textarea'))) {
+                    input.classList.remove('error');
+                }
+            });
+        }
+
+        // 显示错误信息
+        function showError(errorId, message) {
+            const errorElement = document.getElementById(errorId);
+            const input = errorElement.previousElementSibling;
+
+            errorElement.textContent = message;
+            errorElement.classList.add('show');
+            if (input) {
+                input.classList.add('error');
+            }
+        }
+
+        // 头像相关函数
+        function selectDefaultAvatar() {
+            const defaultAvatars = document.getElementById('defaultAvatars');
+            defaultAvatars.style.display = defaultAvatars.style.display === 'none' ? 'grid' : 'none';
+        }
+
+        function hideDefaultAvatars() {
+            document.getElementById('defaultAvatars').style.display = 'none';
+        }
+
+        function chooseDefaultAvatar(avatar) {
+            selectedAvatar = avatar;
+            selectedAvatarType = 'default';
+            customAvatarFile = null;
+            updateAvatarPreview();
+            hideDefaultAvatars();
+
+            // 更新选中状态
+            document.querySelectorAll('.default-avatar').forEach(el => {
+                el.classList.remove('selected');
+            });
+            document.querySelector(`[data-avatar="${avatar}"]`).classList.add('selected');
+        }
+
+        function uploadAvatar() {
+            document.getElementById('avatarInput').click();
+        }
+
+        function handleAvatarUpload(event) {
+            const file = event.target.files[0];
+            console.log('选择的文件:', file);
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) { // 5MB限制
+                    alert('头像文件大小不能超过5MB');
+                    return;
+                }
+
+                if (!file.type.startsWith('image/')) {
+                    alert('请选择图片文件');
+                    return;
+                }
+
+                customAvatarFile = file;
+                selectedAvatarType = 'custom';
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    selectedAvatar = e.target.result;
+                    updateAvatarPreview();
+                };
+                reader.readAsDataURL(file);
+                hideDefaultAvatars();
+            }
+        }
+
+        function updateAvatarPreview() {
+            const preview = document.getElementById('avatarPreview');
+            if (selectedAvatarType === 'custom') {
+                preview.innerHTML = `<img src="${selectedAvatar}" alt="头像预览">`;
+            } else {
+                // 为默认头像显示表情符号，但存储时会转换为base64
+                preview.innerHTML = `<div class="avatar-preview-text">${selectedAvatar}</div>`;
+            }
+        }
+
+        // 表单验证
+        function validateLogin() {
+            let isValid = true;
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            clearErrors(['loginUsernameError', 'loginPasswordError']);
+
+            if (!username) {
+                showError('loginUsernameError', '请输入用户名');
+                isValid = false;
+            }
+
+            if (!password) {
+                showError('loginPasswordError', '请输入密码');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        function validateRegister() {
+            let isValid = true;
+            const username = document.getElementById('registerUsername').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            clearErrors(['registerUsernameError', 'registerPasswordError', 'confirmPasswordError']);
+
+            if (!username) {
+                showError('registerUsernameError', '请输入用户名');
+                isValid = false;
+            } else if (username.length < 3) {
+                showError('registerUsernameError', '用户名至少3个字符');
+                isValid = false;
+            } else if (!/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/.test(username)) {
+                showError('registerUsernameError', '用户名只能包含字母、数字、下划线和中文');
+                isValid = false;
+            }
+
+            if (!password) {
+                showError('registerPasswordError', '请输入密码');
+                isValid = false;
+            } else if (password.length < 6) {
+                showError('registerPasswordError', '密码至少6个字符');
+                isValid = false;
+            }
+
+            if (!confirmPassword) {
+                showError('confirmPasswordError', '请确认密码');
+                isValid = false;
+            } else if (password !== confirmPassword) {
+                showError('confirmPasswordError', '两次输入的密码不一致');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // 处理登录
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            if (!validateLogin()) return;
+
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            const submitBtn = document.getElementById('loginSubmit');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '登录中...';
+
+            try {
+                const hashedPassword = await hashPassword(password);
+
+                // 发送登录请求
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: hashedPassword
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // 登录成功
+                    localStorage.setItem('authToken', data.token);
+                    isLoggedIn = true;
+                    currentUser = {
+                        id: data.user_id,
+                        name: data.username,
+                        avatar: data.avatar
+                    };
+
+                    updateUserInfo();
+                    closeAuthModal();
+
+                    // 重新加载角色列表
+                    await loadRoles();
+                    renderRoles(roles);
+
+                    // 加载最近对话
+                    await loadRecentChats();
+
+                    alert('登录成功！');
+                } else {
+                    // 登录失败
+                    showError('loginPasswordError', '登录失败，请检查用户名和密码');
+                }
+            } catch (error) {
+                console.error('登录错误:', error);
+                showError('loginPasswordError', '网络错误，请稍后重试');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '登录';
+            }
+        }
+
+        // 处理注册
+        async function handleRegister(event) {
+            event.preventDefault();
+
+            if (!validateRegister()) return;
+
+            const username = document.getElementById('registerUsername').value.trim();
+            const password = document.getElementById('registerPassword').value;
+
+            const submitBtn = document.getElementById('registerSubmit');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '注册中...';
+
+            try {
+                const hashedPassword = await hashPassword(password);
+
+                // 第一步：上传头像
+                let avatarUrl;
+                if (selectedAvatarType === 'custom' && customAvatarFile) {
+                    // 上传自定义头像
+                    submitBtn.textContent = '上传头像中...';
+                    avatarUrl = await uploadCustomAvatar(customAvatarFile);
+                } else {
+                    // 上传默认头像（转换为blob后上传）
+                    submitBtn.textContent = '生成头像中...';
+                    avatarUrl = await uploadDefaultAvatar(selectedAvatar);
+                }
+
+                // 第二步：注册用户
+                submitBtn.textContent = '创建账户中...';
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: hashedPassword,
+                        avatar: avatarUrl
+                    })
+                });
+
+                if (response.ok) {
+                    // 注册成功
+                    alert('注册成功！请登录');
+
+                    // 切换到登录标签
+                    switchTab('login');
+
+                    // 预填用户名
+                    document.getElementById('loginUsername').value = username;
+                } else {
+                    // 注册失败
+                    const errorData = await response.json().catch(() => ({}));
+                    showError('registerPasswordError', errorData.message || '注册失败，请稍后重试');
+                }
+            } catch (error) {
+                console.error('注册错误:', error);
+                showError('registerPasswordError', '网络错误，请稍后重试');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '注册';
+            }
+        }
+
+        // 上传自定义头像
+        async function uploadCustomAvatar(file) {
+            const response = await fetch('/api/upload', {
+                method: 'POST',
+                headers: {
+                    'X-File-Name': file.name,
+                    'Content-Type': file.type || 'application/octet-stream'
+                },
+                body: file
+            });
+
+            if (!response.ok) {
+                throw new Error('头像上传失败');
+            }
+
+            const data = await response.json();
+            return data.file_url;
+        }
+
+        // 上传默认头像
+        async function uploadDefaultAvatar(emoji) {
+            // 生成默认头像的Blob
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 200;
+            canvas.height = 200;
+
+            // 设置背景
+            const gradient = ctx.createLinearGradient(0, 0, 200, 200);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 200, 200);
+
+            // 绘制emoji
+            ctx.font = '120px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(emoji, 100, 100);
+
+            // 转换为Blob
+            return new Promise((resolve, reject) => {
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        reject(new Error('头像生成失败'));
+                        return;
+                    }
+
+                    try {
+                        const fileName = `default_avatar_${emoji.codePointAt(0)}.png`;
+                        const response = await fetch('/api/upload', {
+                            method: 'POST',
+                            headers: {
+                                'X-File-Name': fileName,
+                                'Content-Type': 'image/png'
+                            },
+                            body: blob
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('默认头像上传失败');
+                        }
+
+                        const data = await response.json();
+                        resolve(data.file_url);
+                    } catch (error) {
+                        reject(error);
+                    }
+                }, 'image/png');
+            });
+        }        // 绑定表单提交事件
+        document.addEventListener('DOMContentLoaded', function () {
+            initPage();
+
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+            document.getElementById('registerForm').addEventListener('submit', handleRegister);
+            document.getElementById('roleForm').addEventListener('submit', handleRoleCreate);
+
+            // 消息输入框事件监听
+            const messageInput = document.getElementById('messageInputNew');
+            if (messageInput) {
+                messageInput.addEventListener('input', function () {
+                    adjustTextareaHeight(this);
+                });
+                messageInput.addEventListener('keydown', handleInputKeydown);
+            }
+
+            // 点击模态框外部关闭
+            document.getElementById('authModal').addEventListener('click', function (e) {
+                if (e.target === this) {
+                    closeAuthModal();
+                }
+            });
+
+            // ESC键关闭模态框
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    if (document.getElementById('authModal').classList.contains('active')) {
+                        closeAuthModal();
+                    }
+                }
+            });
+        });
+
+        // ====== 对话相关API ======
+
+        // 创建与角色的对话
+        async function createConversation(roleId) {
+            try {
+                const response = await fetch('/api/conversation/new', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        user_id: parseInt(currentUser.id),
+                        role_id: parseInt(roleId)
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('创建对话失败');
+                }
+            } catch (error) {
+                console.error('创建对话错误:', error);
+                // 不抛出错误，因为对话可能已经存在
+            }
+        }
+
+        // 获取用户的对话列表
+        async function loadRecentChats() {
+            try {
+                const response = await fetch(`/api/conversation/list?user_id=${parseInt(currentUser.id)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('获取对话列表失败');
+                }
+
+                const roleIds = await response.json();
+                await renderRecentChats(roleIds);
+            } catch (error) {
+                console.error('加载最近对话错误:', error);
+            }
+        }
+
+        // 渲染最近对话列表
+        async function renderRecentChats(roleIds) {
+            const chatListElement = document.getElementById('chatList');
+
+            if (roleIds.length === 0) {
+                chatListElement.innerHTML = '<div class="no-chats">还没有对话记录</div>';
+                return;
+            }
+
+            // 确保角色列表已加载
+            if (roles.length === 0) {
+                await loadRoles();
+            }
+
+            const chatItems = roleIds.map(roleId => {
+                const role = roles.find(r => String(r.id) === String(roleId));
+                if (!role) return '';
+
+                // 判断头像格式
+                let avatarHtml;
+                if (role.image_url && (role.image_url.startsWith('http') || role.image_url.startsWith('/'))) {
+                    avatarHtml = `<img src="${role.image_url}" alt="${role.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                } else if (role.image_url && role.image_url.startsWith('data:image')) {
+                    avatarHtml = `<img src="${role.image_url}" alt="${role.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                } else {
+                    avatarHtml = role.image_url || '🎭';
+                }
+
+                return `
+                    <div class="chat-item" onclick="openChat('${role.id}')">
+                        <div class="chat-avatar">${avatarHtml}</div>
+                        <div class="chat-info">
+                            <div class="chat-name">${role.name}</div>
+                            <div class="chat-preview">点击开始对话</div>
+                        </div>
+                    </div>
+                `;
+            }).filter(item => item).join('');
+
+            chatListElement.innerHTML = chatItems;
+        }
+
+        // 获取对话的聊天记录
+        async function loadChatDialogs(roleId) {
+            try {
+                const response = await fetch(`/api/conversation/dialogs?user_id=${parseInt(currentUser.id)}&role_id=${parseInt(roleId)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('获取聊天记录失败');
+                }
+
+                const dialogs = await response.json();
+                return dialogs.map(dialog => ({
+                    sender: dialog.is_user ? 'user' : 'role',
+                    message: dialog.text,
+                    timestamp: dialog.timestamp,
+                    voice: dialog.voice // 语音文件URL（如果有）
+                }));
+            } catch (error) {
+                console.error('加载聊天记录错误:', error);
+                return [];
+            }
+        }
+
+        // ====== 聊天相关功能 ======
+
+        let currentChatRole = null; // 当前聊天的角色
+        let chatMessages = []; // 聊天消息历史
+
+        // 显示聊天页面
+        function showChatPage(roleId) {
+            console.log('显示聊天页面，接收到的角色ID:', roleId);
+            currentPage = 'chat';
+
+            // 隐藏其他页面
+            document.querySelector('.header').style.display = 'none';
+            document.querySelector('.content-area').style.display = 'none';
+            document.getElementById('createRolePage').classList.remove('active');
+
+            // 显示新的聊天页面
+            document.getElementById('chatPageNew').classList.add('active');
+
+            if (roleId) {
+                // 如果指定了角色ID，加载该角色的聊天
+                console.log('调用loadChatRole，角色ID:', roleId);
+                loadChatRole(roleId);
+            } else {
+                // 否则显示默认状态
+                resetChatPage();
+            }
+        }
+
+        // 加载聊天角色
+        async function loadChatRole(roleId) {
+            try {
+                console.log('尝试加载角色ID:', roleId, '类型:', typeof roleId);
+                console.log('当前角色列表:', roles);
+
+                // 确保ID都是字符串格式进行比较
+                const targetId = String(roleId);
+                const role = roles.find(r => String(r.id) === targetId);
+
+                if (!role) {
+                    console.error('角色不存在，目标ID:', targetId);
+                    console.error('可用角色ID列表:', roles.map(r => String(r.id)));
+                    throw new Error(`角色不存在，ID: ${targetId}`);
+                }
+
+                currentChatRole = role;
+                console.log('成功加载角色:', role);
+
+                // 更新聊天头部 - 只显示角色名
+                const nameElement = document.getElementById('currentRoleNameNew');
+                nameElement.textContent = role.name;
+
+                // 加载历史聊天记录
+                chatMessages = await loadChatDialogs(roleId);
+                renderChatMessages();
+
+                // 启用输入框
+                enableChatInput();
+
+            } catch (error) {
+                console.error('加载角色失败:', error);
+                alert('加载角色失败: ' + error.message);
+            }
+        }
+
+        // 重置聊天页面
+        function resetChatPage() {
+            currentChatRole = null;
+            chatMessages = [];
+
+            // 重置头部 - 只更新角色名
+            document.getElementById('currentRoleNameNew').textContent = '选择一个角色开始对话';
+
+            // 显示空状态
+            showChatEmpty();
+
+            // 禁用输入框
+            disableChatInput();
+        }
+
+        // 渲染聊天消息
+        function renderChatMessages() {
+            const container = document.getElementById('chatMessagesNew');
+            const emptyDiv = document.getElementById('chatEmptyNew');
+
+            if (chatMessages.length === 0) {
+                showChatEmpty();
+                return;
+            }
+
+            // 隐藏空状态
+            emptyDiv.style.display = 'none';
+
+            container.innerHTML = chatMessages.map(message => {
+                const isUser = message.sender === 'user';
+                let avatarHtml;
+
+                if (isUser) {
+                    // 用户头像处理
+                    if (currentUser.avatar) {
+                        if (isEmoji(currentUser.avatar)) {
+                            avatarHtml = currentUser.avatar;
+                        } else {
+                            avatarHtml = `<img src="${currentUser.avatar}" alt="${currentUser.name}">`;
+                        }
+                    } else {
+                        avatarHtml = '👤';
+                    }
+                } else {
+                    // 角色头像处理
+                    if (currentChatRole.image_url) {
+                        if (isEmoji(currentChatRole.image_url)) {
+                            avatarHtml = currentChatRole.image_url;
+                        } else {
+                            avatarHtml = `<img src="${currentChatRole.image_url}" alt="${currentChatRole.name}">`;
+                        }
+                    } else {
+                        avatarHtml = '🎭';
+                    }
+                }
+
+                // 消息内容，支持文本和语音
+                let messageContent = `<div class="message-text">${message.message}</div>`;
+                if (message.voice) {
+                    messageContent += `
+                        <div class="message-voice">
+                            <audio controls>
+                                <source src="${message.voice}" type="audio/mpeg">
+                                您的浏览器不支持音频播放。
+                            </audio>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="message ${isUser ? 'user' : 'role'}">
+                        <div class="message-avatar ${isUser ? 'user' : 'role'}">${avatarHtml}</div>
+                        <div class="message-content">${messageContent}</div>
+                    </div>
+                `;
+            }).join('') + '<div id="chatEmptyNew" style="display: none;"></div>';
+
+            // 滚动到底部
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // 显示聊天空状态
+        function showChatEmpty() {
+            const container = document.getElementById('chatMessagesNew');
+
+            // 清空消息
+            container.innerHTML = `
+                <div class="chat-empty" id="chatEmptyNew">
+                    <div class="chat-empty-icon">💬</div>
+                    <div class="chat-empty-text">${currentChatRole ? '开始与 ' + currentChatRole.name + ' 对话吧！' : '还没有聊天记录'}</div>
+                    <div class="chat-empty-hint">${currentChatRole ? '输入消息开始有趣的角色扮演' : '选择一个角色开始有趣的对话吧！'}</div>
+                </div>
+            `;
+        }
+
+        // 启用聊天输入
+        function enableChatInput() {
+            const input = document.getElementById('messageInputNew');
+            const sendBtn = document.getElementById('sendBtnNew');
+
+            input.disabled = false;
+            input.placeholder = '输入消息...';
+            checkSendButton();
+        }
+
+        // 禁用聊天输入
+        function disableChatInput() {
+            const input = document.getElementById('messageInputNew');
+            const sendBtn = document.getElementById('sendBtnNew');
+
+            input.disabled = true;
+            input.placeholder = '请先选择一个角色...';
+            sendBtn.disabled = true;
+        }
+
+        // 发送消息
+        async function sendMessage() {
+            if (!currentChatRole) {
+                alert('请先选择一个角色');
+                return;
+            }
+
+            const input = document.getElementById('messageInputNew');
+            const message = input.value.trim();
+
+            if (!message) {
+                return;
+            }
+
+            // 添加用户消息
+            chatMessages.push({
+                sender: 'user',
+                content: message,
+                timestamp: new Date()
+            });
+
+            // 清空输入框
+            input.value = '';
+            input.style.height = 'auto';
+            checkSendButton();
+
+            // 重新渲染消息
+            renderChatMessages();
+
+            // 模拟角色回复（这里可以接入实际的AI API）
+            setTimeout(() => {
+                const roleReplies = [
+                    `作为${currentChatRole.name}，我想说：${message} 这真是个有趣的话题！`,
+                    `哈哈，你说得对！作为${currentChatRole.name}，我对此有不同的看法...`,
+                    `${message}？让我以${currentChatRole.name}的身份来回答你...`,
+                    `作为${currentChatRole.name}，我觉得这个问题很有意思，我的看法是...`,
+                    `从${currentChatRole.name}的角度来看，${message}确实值得深入讨论！`
+                ];
+
+                const randomReply = roleReplies[Math.floor(Math.random() * roleReplies.length)];
+
+                chatMessages.push({
+                    sender: 'role',
+                    content: randomReply,
+                    timestamp: new Date()
+                });
+
+                renderChatMessages();
+            }, 1000 + Math.random() * 2000); // 1-3秒随机延迟
+        }
+
+        // 处理输入框键盘事件
+        function handleInputKeydown(event) {
+            if (event.key === 'Enter') {
+                if (event.shiftKey) {
+                    // Shift+Enter 换行
+                    return;
+                } else {
+                    // Enter 发送消息
+                    event.preventDefault();
+                    sendMessage();
+                }
+            }
+        }
+
+        // 自动调整输入框高度
+        function adjustTextareaHeight(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+
+            // 检查发送按钮状态
+            checkSendButton();
+        }
+
+        // 检查发送按钮状态
+        function checkSendButton() {
+            const input = document.getElementById('messageInputNew');
+            const sendBtn = document.getElementById('sendBtnNew');
+
+            if (currentChatRole && input.value.trim()) {
+                sendBtn.disabled = false;
+            } else {
+                sendBtn.disabled = true;
+            }
+        }
+
+        // 语音输入（占位符功能）
+        function startVoiceInput() {
+            alert('语音输入功能正在开发中，敬请期待！');
+        }
+
+        // 修改现有的角色卡片点击事件，添加聊天功能
+        async function startChatWithRole(roleId) {
+            console.log('开始聊天，角色ID:', roleId);
+            console.log('当前登录状态:', isLoggedIn);
+
+            if (!isLoggedIn) {
+                showAuthModal();
+                return;
+            }
+
+            try {
+                // 创建与角色的对话（如果不存在）
+                await createConversation(roleId);
+
+                // 确保角色列表已加载
+                if (roles.length === 0) {
+                    console.log('角色列表为空，重新加载...');
+                    await loadRoles();
+                }
+
+                console.log('当前roles数组:', roles);
+                showChatPage(roleId);
+
+                // 更新最近对话列表
+                await loadRecentChats();
+            } catch (error) {
+                console.error('启动对话失败:', error);
+                alert('启动对话失败: ' + error.message);
+            }
+        }
+
+        // 修改backToHome函数，支持从聊天页面返回
+        function backToHome() {
+            currentPage = 'home';
+            document.querySelector('.header').style.display = 'flex';
+            document.querySelector('.content-area').style.display = 'block';
+            document.getElementById('createRolePage').classList.remove('active');
+            document.getElementById('chatPageNew').classList.remove('active');
+
+            if (currentPage === 'create-role') {
+                resetRoleForm();
+            }
+        }
+    </script>
+</body>
+
+</html>

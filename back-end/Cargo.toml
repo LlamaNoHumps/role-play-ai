@@ -1,0 +1,76 @@
+[package]
+name = "back-end"
+version = "0.1.0"
+edition = "2024"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 'z'
+debug = true
+overflow-checks = true
+
+[lints.clippy]
+
+[dependencies]
+reqwest = { version = "0.12.23", default-features = false, features = [
+    "json",
+    "default-tls",
+] }
+sea-orm = { version = "1.1.16", default-features = false, features = [
+    "sqlx-mysql",
+    "runtime-tokio-rustls",
+    "macros",
+] }
+tokio = { version = "1.47.1", default-features = false, features = [
+    "macros",
+    "rt-multi-thread",
+] }
+# ansi_term = { version = "0.12.1", default-features = false }
+anyhow = { version = "1.0.100", default-features = false, features = [
+    "std",
+    "backtrace",
+] }
+serde = { version = "1.0.226", default-features = false }
+serde_json = { version = "1.0.145", default-features = false }
+qiniu-sdk = { version = "0.2.4", default-features = false, features = [
+    "credential",
+    "async",
+    "http-client",
+    "reqwest",
+    "http",
+    "apis",
+    "upload",
+    "download",
+] }
+base64 = { version = "0.22.1", default-features = false }
+futures = { version = "0.3.31", default-features = false }
+uuid = { version = "1.18.1", default-features = false, features = ["v4"] }
+axum = { version = "0.8.4", default-features = false, features = [
+    "tokio",
+    "http1",
+    "json",
+    "query",
+    "macros",
+] }
+# chrono = { version = "0.4.42", default-features = false }
+# regex = { version = "1.11.2", default-features = false, features = ["std"] }
+tower-http = { version = "0.6.6", default-features = false, features = ["fs"] }
+tracing = { version = "0.1.41", default-features = false }
+# tracing-appender = { version = "0.2.3", default-features = false }
+tracing-subscriber = { version = "0.3.20", default-features = false, features = [
+    "env-filter",
+    "chrono",
+    "fmt",
+] }
+mediawiki = { version = "0.3.1", default-features = false }
+llm-chain-openai = { version = "0.13.0", default-features = false }
+llm-chain = { version = "0.13.0", default-features = false }
+async-openai = { version = "0.16.3", default-features = false }
+socketioxide = { version = "0.16.3", default-features = false, features = [
+    "state",
+    "tracing",
+] }
+
+[dev-dependencies]
+dotenv = { version = "0.15.0", default-features = false }
