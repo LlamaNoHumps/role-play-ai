@@ -1,12 +1,17 @@
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Routes } from '@angular/router';
+import { RoleGeneratorComponent } from './role-generator/role-generator.component';
+import { RoleListComponent } from './role-list/role-list.component';
 
+// export const ROLES_ROUTES: Routes = [
+//   { path: '', component: RoleListComponent },
+//   { path: 'generate', component: RoleGeneratorComponent }
+// ];
 
+// export default ROLES_ROUTES;
 
-@NgModule({
-  declarations: [],
-  imports: [
-    CommonModule
-  ]
-})
-export class RolesModule { }
+const routes: Routes = [
+  { path: '', component: RoleListComponent },
+  { path: 'generate', component: RoleGeneratorComponent },
+];
+
+export default routes;

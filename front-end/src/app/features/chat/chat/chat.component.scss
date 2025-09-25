@@ -1,0 +1,8 @@
+.chat { display:flex; flex-direction:column; height: calc(100vh - 64px); }
+.hist { flex:1; overflow:auto; padding:12px; }
+.msg { margin:8px 0; display:flex; }
+.msg.user { justify-content:flex-end; }
+.bubble { background:#eee; padding:8px 12px; border-radius:10px; max-width:70%; }
+.msg.user .bubble { background:#cfe9ff; }
+.composer { display:flex; gap:8px; padding:12px; }
+.composer textarea { flex:1; resize: vertical; }
