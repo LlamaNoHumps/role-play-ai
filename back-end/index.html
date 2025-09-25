@@ -2507,6 +2507,9 @@
             if (isLoggedIn) {
                 await loadRecentChats();
             }
+
+            // 从URL锚点恢复页面状态
+            restoreFromUrlHash();
         }
 
         // 更新用户信息显示
@@ -2575,7 +2578,7 @@
 
             // 如果当前在聊天页面，返回主页
             if (currentPage === 'chat') {
-                showHomePage();
+                backToHome();
             }
 
             alert('已退出登录');
@@ -2685,6 +2688,73 @@
 
         // 当前页面状态
         let currentPage = 'home'; // 'home', 'create-role', 'chat'
+        let currentChatRoleId = null; // 当前聊天的角色ID
+
+        // 更新URL锚点
+        function updateUrlHash() {
+            let hash = '';
+            switch (currentPage) {
+                case 'create-role':
+                    hash = '#create-role';
+                    break;
+                case 'chat':
+                    if (currentChatRoleId) {
+                        hash = `#chat/${currentChatRoleId}`;
+                    } else {
+                        hash = '#chat';
+                    }
+                    break;
+                case 'home':
+                default:
+                    hash = '#home';
+                    break;
+            }
+            console.log('更新URL锚点:', hash);
+            window.location.hash = hash;
+        }
+
+        // 从URL锚点恢复页面状态
+        function restoreFromUrlHash() {
+            const hash = window.location.hash.substring(1); // 移除 # 符号
+            console.log('从URL锚点恢复页面状态:', hash);
+
+            if (!hash) {
+                backToHome();
+                return;
+            }
+
+            const parts = hash.split('/');
+            const page = parts[0];
+
+            switch (page) {
+                case 'create-role':
+                    showCreateRolePage();
+                    break;
+                case 'chat':
+                    const roleId = parts[1];
+                    if (roleId && isLoggedIn) {
+                        // 只有在登录状态下才恢复聊天页面
+                        showChatPage(roleId);
+                    } else if (!isLoggedIn) {
+                        // 未登录时跳转到主页
+                        backToHome();
+                    } else {
+                        // 没有角色ID，显示聊天页面但不加载特定对话
+                        showChatPage(null);
+                    }
+                    break;
+                case 'home':
+                default:
+                    backToHome();
+                    break;
+            }
+        }
+
+        // 监听浏览器前进后退事件
+        window.addEventListener('hashchange', function () {
+            console.log('检测到锚点变化');
+            restoreFromUrlHash();
+        });
 
         // 角色创建相关变量
         let selectedRoleAvatar = '🎭';
@@ -2703,6 +2773,8 @@
         // 显示创建角色页面
         function showCreateRolePage() {
             currentPage = 'create-role';
+            currentChatRoleId = null;
+
             document.querySelector('.header').style.display = 'none';
             document.querySelector('.content-area').style.display = 'none';
             document.getElementById('chatPageNew').classList.remove('active');
@@ -2710,6 +2782,11 @@
 
             // 重置表单，确保每次打开都是干净的
             resetRoleForm();
+
+            // 只在当前URL不是create-role时才更新锚点
+            if (window.location.hash !== '#create-role') {
+                updateUrlHash();
+            }
         }
 
         // 重置角色表单
@@ -3630,6 +3707,7 @@
         function showChatPage(roleId) {
             console.log('显示聊天页面，接收到的角色ID:', roleId);
             currentPage = 'chat';
+            currentChatRoleId = roleId;
 
             // 隐藏其他页面
             document.querySelector('.header').style.display = 'none';
@@ -3646,6 +3724,12 @@
             } else {
                 // 否则显示默认状态
                 resetChatPage();
+            }
+
+            // 只在当前URL不匹配时才更新锚点
+            const expectedHash = roleId ? `#chat/${roleId}` : '#chat';
+            if (window.location.hash !== expectedHash) {
+                updateUrlHash();
             }
         }
 
@@ -4094,13 +4178,16 @@
         // 修改backToHome函数，支持从聊天页面返回
         function backToHome() {
             currentPage = 'home';
+            currentChatRoleId = null;
+
             document.querySelector('.header').style.display = 'flex';
             document.querySelector('.content-area').style.display = 'block';
             document.getElementById('createRolePage').classList.remove('active');
             document.getElementById('chatPageNew').classList.remove('active');
 
-            if (currentPage === 'create-role') {
-                resetRoleForm();
+            // 只在当前URL不是home时才更新锚点，避免无限循环
+            if (window.location.hash !== '#home') {
+                updateUrlHash();
             }
         }
     </script>
