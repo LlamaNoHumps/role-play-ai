@@ -1,15 +1,15 @@
-use crate::storage::StorageClient;
+use std::collections::HashMap;
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct Recorder {
-    storage_client: Arc<StorageClient>,
     http_client: reqwest::Client,
 }
 
 impl Recorder {
-    pub fn new(storage_client: Arc<StorageClient>, ai_api_key: &str) -> Self {
+    pub fn new(ai_api_key: &str) -> Self {
         let headers = {
             let mut headers = reqwest::header::HeaderMap::new();
             headers.insert(
@@ -28,10 +28,7 @@ impl Recorder {
             .build()
             .unwrap();
 
-        Self {
-            storage_client,
-            http_client,
-        }
+        Self { http_client }
     }
 
     pub async fn asr(&self, voice_url: &str) -> Result<String> {
@@ -68,31 +65,23 @@ struct AudioInfo {
 
 #[derive(Deserialize)]
 struct Response {
-    reqid: String,
-    operation: String,
     data: ResponseData,
+    #[serde(flatten)]
+    _others: HashMap<String, serde_json::Value>,
 }
 
 #[derive(Deserialize)]
 struct ResponseData {
-    audio_info: DurationI32,
     result: ResponseDataResult,
-}
-
-#[derive(Deserialize)]
-struct DurationI32 {
-    duration: i32,
-}
-
-#[derive(Deserialize)]
-struct DurationString {
-    duration: String,
+    #[serde(flatten)]
+    _others: HashMap<String, serde_json::Value>,
 }
 
 #[derive(Deserialize)]
 struct ResponseDataResult {
-    additions: DurationString,
     text: String,
+    #[serde(flatten)]
+    _others: HashMap<String, serde_json::Value>,
 }
 
 #[cfg(test)]
@@ -104,9 +93,7 @@ mod tests {
     async fn test_asr() {
         let env = get_env();
 
-        let mut storage_client = StorageClient::new(&env.qiniu_access_key, &env.qiniu_secret_key);
-        storage_client.init_bucket().await.unwrap();
-        let recorder = Recorder::new(Arc::new(storage_client), &env.qiniu_ai_api_key);
+        let recorder = Recorder::new(&env.qiniu_ai_api_key);
         let audio_data = recorder.asr("http://t2zfj0z3c.hd-bkt.clouddn.com/audio_e01b5f19-0bd9-4510-a580-fd6c44d14d53.mp3").await.unwrap();
 
         println!("{}", audio_data);

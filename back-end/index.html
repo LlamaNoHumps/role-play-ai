@@ -1065,12 +1065,65 @@
 
         .message-voice {
             margin-top: 8px;
+            min-width: 250px;
+            /* 确保最小宽度足够显示完整控件 */
         }
 
         .message-voice audio {
             width: 100%;
-            max-width: 300px;
-            height: 30px;
+            min-width: 250px;
+            /* 音频控件最小宽度 */
+            max-width: 400px;
+            /* 增加最大宽度 */
+            height: 36px;
+            /* 增加高度，让控件更容易操作 */
+            border-radius: 8px;
+            /* 添加圆角 */
+            background-color: linear-gradient(135deg, #3498db, #2980b9);
+            /* 添加背景色 */
+            outline: none;
+            /* 去除焦点轮廓 */
+        }
+
+        .message-voice audio::-webkit-media-controls-panel {
+            background-color: linear-gradient(135deg, #3498db, #2980b9);
+            border-radius: 8px;
+        }
+
+        /* 用户发送的语音消息右对齐 */
+        .message.user .message-voice {
+            text-align: right;
+        }
+
+        /* 包含语音的消息容器需要更大的最小宽度 */
+        .message-content:has(.message-voice),
+        .message-content.has-voice {
+            min-width: 280px !important;
+        }
+
+        /* 确保所有消息容器都有基本的最小宽度 */
+        .message-content {
+            min-width: 180px;
+        }
+
+        /* 语音消息的文本样式 */
+        .message-text {
+            margin-bottom: 4px;
+        }
+
+        .message-text:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 语音消息标识文本的样式 */
+        .message.has-voice .message-text {
+            font-style: italic;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        .message.user.has-voice .message-text {
+            color: rgba(255, 255, 255, 0.8);
         }
 
         .chat-input {
@@ -1869,7 +1922,7 @@
                 <div class="chat-input">
                     <textarea class="message-input" id="messageInputNew" placeholder="输入消息..." rows="1"
                         onkeydown="handleInputKeydown(event)" oninput="adjustTextareaHeight(this)"></textarea>
-                    <button class="voice-btn" onclick="startVoiceInput()" title="语音输入">
+                    <button class="voice-btn" id="voiceBtnNew" onclick="startVoiceInput()" title="语音输入">
                         🎤
                     </button>
                     <button class="send-btn" id="sendBtnNew" onclick="sendMessage()" title="发送消息" disabled>
@@ -2015,6 +2068,15 @@
                 console.log('数据类型:', typeof data);
                 console.log('========================');
                 handleReceivedMessage(data);
+                hideTypingIndicator(); // 收到回复后隐藏"正在回复"状态
+            });
+
+            // 接收语音转文字更新事件
+            socket.on('update_message', (data) => {
+                console.log('=== 接收到update_message事件 ===');
+                console.log('更新数据:', data);
+                console.log('==============================');
+                handleMessageUpdate(data);
             });
 
             // 连接错误处理
@@ -2076,6 +2138,56 @@
             socket.emit('message', messageData);
         }
 
+        // 发送语音消息到后端
+        function sendVoiceMessage(userId, roleId, voiceUrl, messageId) {
+            if (!socket) {
+                console.error('Socket未初始化');
+                return;
+            }
+
+            if (!socket.connected) {
+                console.error('Socket未连接');
+                return;
+            }
+
+            const messageData = {
+                user_id: parseInt(userId),
+                role_id: parseInt(roleId),
+                timestamp: Date.now(),
+                voice_url: voiceUrl,
+                id: messageId
+            };
+
+            console.log('=== 发送语音消息 ===');
+            console.log('Socket ID:', socket.id);
+            console.log('Socket连接状态:', socket.connected);
+            console.log('语音消息数据:', messageData);
+            console.log('=================');
+
+            socket.emit('voice', messageData);
+        }
+
+        // 处理消息更新（语音转文字）
+        function handleMessageUpdate(data) {
+            console.log('处理消息更新:', data);
+
+            if (!data.id || !data.text) {
+                console.error('消息更新数据不完整:', data);
+                return;
+            }
+
+            // 查找对应ID的消息并更新文本
+            const messageIndex = chatMessages.findIndex(msg => msg.id === data.id);
+            if (messageIndex !== -1) {
+                chatMessages[messageIndex].message = data.text;
+                console.log('消息文本已更新:', chatMessages[messageIndex]);
+                renderChatMessages();
+                showTypingIndicator(); // 显示"正在回复"状态
+            } else {
+                console.error('找不到对应ID的消息:', data.id);
+            }
+        }
+
         // 处理接收到的消息
         function handleReceivedMessage(data) {
             console.log('处理接收到的消息:', data);
@@ -2102,6 +2214,7 @@
 
             // 添加角色消息到聊天记录
             const message = {
+                id: ++messageIdCounter, // 为接收到的消息也添加ID
                 sender: 'role',
                 message: data.text,
                 timestamp: new Date(data.timestamp),
@@ -3315,6 +3428,7 @@
 
                 const dialogs = await response.json();
                 return dialogs.map(dialog => ({
+                    id: ++messageIdCounter, // 为历史消息也添加ID
                     sender: dialog.is_user ? 'user' : 'role',
                     message: dialog.text,
                     timestamp: dialog.timestamp,
@@ -3450,10 +3564,12 @@
 
                 // 消息内容，支持文本和语音
                 let messageContent = `<div class="message-text">${message.message}</div>`;
+                let hasVoiceClass = '';
                 if (message.voice) {
+                    hasVoiceClass = ' has-voice'; // 添加CSS类标识
                     messageContent += `
                         <div class="message-voice">
-                            <audio controls>
+                            <audio controls preload="metadata">
                                 <source src="${message.voice}" type="audio/mpeg">
                                 您的浏览器不支持音频播放。
                             </audio>
@@ -3462,9 +3578,9 @@
                 }
 
                 return `
-                    <div class="message ${isUser ? 'user' : 'role'}">
+                    <div class="message ${isUser ? 'user' : 'role'}${hasVoiceClass}">
                         <div class="message-avatar ${isUser ? 'user' : 'role'}">${avatarHtml}</div>
-                        <div class="message-content">${messageContent}</div>
+                        <div class="message-content${hasVoiceClass}">${messageContent}</div>
                     </div>
                 `;
             }).join('') + '<div id="chatEmptyNew" style="display: none;"></div>';
@@ -3528,6 +3644,7 @@
 
             // 添加用户消息到界面
             chatMessages.push({
+                id: ++messageIdCounter, // 为文本消息也添加ID
                 sender: 'user',
                 message: message,
                 timestamp: new Date()
@@ -3580,9 +3697,186 @@
             }
         }
 
-        // 语音输入（占位符功能）
-        function startVoiceInput() {
-            alert('语音输入功能正在开发中，敬请期待！');
+        // 语音录制相关变量
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let messageIdCounter = 0; // 消息ID计数器
+
+        // 语音输入功能
+        async function startVoiceInput() {
+            if (!currentChatRole) {
+                alert('请先选择一个角色');
+                return;
+            }
+
+            if (!isLoggedIn) {
+                alert('请先登录');
+                return;
+            }
+
+            if (isRecording) {
+                // 如果正在录音，停止录音
+                stopRecording();
+            } else {
+                // 开始录音
+                await startRecording();
+            }
+        }
+
+        // 开始录制语音
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+
+                // 检查浏览器支持的音频格式
+                let mimeType = 'audio/mp4'; // 默认使用mp4格式，比webm更接近mp3
+                if (MediaRecorder.isTypeSupported('audio/mpeg')) {
+                    mimeType = 'audio/mpeg';
+                } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                    mimeType = 'audio/mp4';
+                } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                    mimeType = 'audio/webm;codecs=opus'; // 备用方案
+                }
+
+                console.log('使用音频格式:', mimeType);
+
+                mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: mimeType
+                });
+
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    await uploadAndSendVoice(audioBlob);
+
+                    // 停止所有音频流
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                updateVoiceButton();
+
+                console.log('开始录音...');
+            } catch (error) {
+                console.error('无法访问麦克风:', error);
+                alert('无法访问麦克风，请检查权限设置');
+            }
+        }
+
+        // 停止录制语音
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+                updateVoiceButton();
+                console.log('停止录音...');
+            }
+        }
+
+        // 更新语音按钮状态
+        function updateVoiceButton() {
+            const voiceBtn = document.getElementById('voiceBtnNew');
+            if (isRecording) {
+                voiceBtn.innerHTML = '⏹️';
+                voiceBtn.title = '点击停止录音';
+                voiceBtn.style.backgroundColor = '#ff4757';
+            } else {
+                voiceBtn.innerHTML = '🎤';
+                voiceBtn.title = '点击录制语音';
+                voiceBtn.style.backgroundColor = '';
+            }
+        }
+
+        // 上传语音并发送消息
+        async function uploadAndSendVoice(audioBlob) {
+            try {
+                console.log('开始上传语音文件，大小:', audioBlob.size);
+
+                // 检查登录状态和角色
+                if (!currentUser || !currentChatRole) {
+                    throw new Error('用户未登录或未选择角色');
+                }
+
+                // 上传语音文件
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                        'X-File-Name': `voice_${Date.now()}.mp3`,
+                        'Content-Type': 'audio/mpeg'
+                    },
+                    body: audioBlob
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`语音上传失败: ${response.status} ${errorText}`);
+                }
+
+                const uploadData = await response.json();
+                console.log('上传响应:', uploadData);
+
+                if (!uploadData.file_url) {
+                    throw new Error('上传响应中缺少file_url');
+                }
+
+                const voiceUrl = uploadData.file_url;
+                console.log('语音上传成功，URL:', voiceUrl);
+
+                // 生成消息ID
+                messageIdCounter++;
+                const messageId = messageIdCounter;
+
+                // 添加用户语音消息到界面（显示为"[正在将语音转换成文字]"）
+                chatMessages.push({
+                    id: messageId,
+                    sender: 'user',
+                    message: '[正在将语音转换成文字]',
+                    timestamp: new Date(),
+                    voice: voiceUrl
+                });
+
+                // 重新渲染消息
+                renderChatMessages();
+
+                // 通过Socket发送语音消息到后端
+                sendVoiceMessage(currentUser.id, currentChatRole.id, voiceUrl, messageId);
+
+            } catch (error) {
+                console.error('语音处理失败:', error);
+                alert('语音发送失败: ' + error.message);
+            }
+        }
+
+        // 显示"正在回复"状态
+        function showTypingIndicator() {
+            const roleNameElement = document.getElementById('currentRoleNameNew');
+            if (roleNameElement && currentChatRole) {
+                roleNameElement.innerHTML = `${currentChatRole.name} <span style="font-size: 12px; color: #7f8c8d; font-weight: normal;">正在回复</span>`;
+            }
+        }
+
+        // 隐藏"正在回复"状态
+        function hideTypingIndicator() {
+            const roleNameElement = document.getElementById('currentRoleNameNew');
+            if (roleNameElement && currentChatRole) {
+                roleNameElement.textContent = currentChatRole.name;
+            }
         }
 
         // 修改现有的角色卡片点击事件，添加聊天功能

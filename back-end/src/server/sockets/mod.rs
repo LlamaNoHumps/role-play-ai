@@ -1,5 +1,6 @@
 pub mod join;
 pub mod message;
+pub mod voice;
 
 use socketioxide::extract::SocketRef;
 

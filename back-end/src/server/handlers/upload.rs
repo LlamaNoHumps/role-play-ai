@@ -16,8 +16,10 @@ pub async fn handler(
 ) -> HttpResult<Json<ResponseData>> {
     let name = headers.get("X-File-Name").unwrap().to_str()?;
 
+    let suffix = name.rsplit('.').next().unwrap_or_default();
+    let name = name.trim_end_matches(&format!(".{}", suffix));
     let uuid = uuid::Uuid::new_v4();
-    let name = format!("{}-{}.jpg", name, uuid);
+    let name = format!("{}-{}.{}", name, uuid, suffix);
     tokio::fs::write(&name, &body).await?;
 
     let ObjectInfo { key: filename, .. } =

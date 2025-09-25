@@ -5,11 +5,14 @@ use crate::{
     database::Database,
     env::ENV,
     reciter::Reciter,
+    recorder::Recorder,
     storage::StorageClient,
     trace::trace_middleware,
 };
 use axum::{
-    Extension, Router, middleware,
+    Extension, Router,
+    extract::DefaultBodyLimit,
+    middleware,
     routing::{get, post},
 };
 use socketioxide::{SocketIo, extract::SocketRef};
@@ -59,6 +62,7 @@ pub async fn run() {
     let socketio = Arc::new(socketio);
 
     let reciter = Reciter::new(storage_client.clone(), &env.qiniu_ai_api_key);
+    let recorder = Recorder::new(&env.qiniu_ai_api_key);
     let database_s = database.clone();
     let ai = Arc::new(ai);
     socketio.ns("/", |s: SocketRef| {
@@ -66,9 +70,11 @@ pub async fn run() {
         s.on_disconnect(sockets::disconnect);
         s.on(sockets::join::EVENT, sockets::join::handler);
         s.on(sockets::message::EVENT, sockets::message::handler);
+        s.on(sockets::voice::EVENT, sockets::voice::handler);
         s.extensions.insert(database_s);
         s.extensions.insert(ai);
         s.extensions.insert(reciter);
+        s.extensions.insert(recorder);
     });
 
     let router = Router::new()
@@ -106,6 +112,7 @@ pub async fn run() {
             get(handlers::conversation::dialogs::handler),
         )
         .layer(middleware::from_fn(trace_middleware))
+        .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
         .layer(Extension(storage_client))
         .layer(Extension(database))
         .layer(Extension(role_builder))
