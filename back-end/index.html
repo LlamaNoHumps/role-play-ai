@@ -282,6 +282,10 @@
         .role-info {
             padding: 15px;
             flex: 1;
+            /* 确保内容垂直排列：名字在上，描述在下 */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
         }
 
         .role-actions {
@@ -316,12 +320,33 @@
             font-weight: 600;
             color: #2c3e50;
             margin-bottom: 5px;
+            /* 确保文字水平显示 */
+            writing-mode: horizontal-tb;
+            text-orientation: mixed;
+            /* 限制显示1行，多余文字显示省略号 */
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-height: calc(1.2em * 1);
+            /* 1行的高度 */
         }
 
         .role-description {
             font-size: 12px;
             color: #7f8c8d;
             line-height: 1.4;
+            /* 限制显示5行，多余文字显示省略号 */
+            display: -webkit-box;
+            -webkit-line-clamp: 5;
+            line-clamp: 5;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-height: calc(1.4em * 5);
+            /* 5行的高度 */
         }
 
         /* 空状态 */
@@ -2502,14 +2527,56 @@
         }
 
         // 搜索角色
-        function searchRoles() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const filteredRoles = roles.filter(role =>
-                role.name.toLowerCase().includes(searchTerm) ||
-                role.description.toLowerCase().includes(searchTerm) ||
-                (role.traits && role.traits.toLowerCase().includes(searchTerm))
-            );
-            renderRoles(filteredRoles);
+        async function searchRoles() {
+            const searchTerm = document.getElementById('searchInput').value.trim();
+
+            if (!searchTerm) {
+                // 如果搜索词为空，显示所有角色
+                renderRoles(roles);
+                return;
+            }
+
+            try {
+                // 调用后端搜索接口
+                const response = await fetch(`/api/role/search?q=${encodeURIComponent(searchTerm)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+
+                if (response.ok) {
+                    const searchResults = await response.json();
+                    const formattedResults = searchResults.map(role => ({
+                        id: String(role.role_id), // 确保ID是字符串
+                        name: role.name,
+                        description: role.description,
+                        traits: role.traits,
+                        image_url: role.image_url,
+                        gender: role.gender,
+                        voice_type: role.voice_type
+                    }));
+                    renderRoles(formattedResults);
+                } else {
+                    console.warn('搜索请求失败:', response.status);
+                    // 降级到客户端搜索
+                    const filteredRoles = roles.filter(role =>
+                        role.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        role.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (role.traits && role.traits.toLowerCase().includes(searchTerm.toLowerCase()))
+                    );
+                    renderRoles(filteredRoles);
+                }
+            } catch (error) {
+                console.error('搜索错误:', error);
+                // 降级到客户端搜索
+                const filteredRoles = roles.filter(role =>
+                    role.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    role.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    (role.traits && role.traits.toLowerCase().includes(searchTerm.toLowerCase()))
+                );
+                renderRoles(filteredRoles);
+            }
         }
 
         // 当前页面状态
