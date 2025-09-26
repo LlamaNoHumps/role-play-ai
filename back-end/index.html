@@ -153,6 +153,29 @@
             margin-bottom: 6px;
         }
 
+        .debate-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .debate-delete-btn {
+            color: #7f8c8d;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            opacity: 0.6;
+        }
+
+        .debate-delete-btn:hover {
+            color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+            opacity: 1;
+        }
+
         .debate-roles {
             display: flex;
             align-items: center;
@@ -4660,6 +4683,7 @@
                             <!-- 操作区域 -->
                             <div class="setting-section actions-section">
                                 <button onclick="clearAllConversations()" class="danger-btn">清空所有对话</button>
+                                <button onclick="deleteAllDebates()" class="danger-btn">删除所有辩论</button>
                             </div>
                         </div>
                     </div>
@@ -4692,6 +4716,7 @@
             // 重新加载页面数据
             loadRoles();
             document.getElementById('chatList').innerHTML = '<div class="no-chats">登录后查看对话记录</div>';
+            document.getElementById('debateList').innerHTML = '<div class="no-debates">登录后查看辩论记录</div>';
 
             // 如果当前在聊天页面，返回主页
             if (currentPage === 'chat') {
@@ -5434,7 +5459,7 @@
             // 如果没有传入参数，尝试使用当前存储的信息
             if (!topic && !proRole && !conRole) {
                 if (!currentDebateRoles || !currentDebateRoles.pro || !currentDebateRoles.con || !currentDebateTopic) {
-                    showAlert('辩论信息不完整，返回辩论设置页面');
+                    alert('辩论信息不完整，返回辩论设置页面');
                     showDebate();
                     return;
                 }
@@ -7415,14 +7440,29 @@
                     } else {
                         console.log('没有更多历史辩论数据');
                         lazyLoadState.debates.hasMore = false;
+
+                        // 如果是第一次加载且没有数据，显示空状态
+                        if (!append) {
+                            await renderRecentDebates([], false);
+                        }
                     }
                 } else {
                     console.error('加载历史辩论失败:', response.status);
                     lazyLoadState.debates.hasMore = false;
+
+                    // 如果是第一次加载且请求失败，显示空状态
+                    if (!append) {
+                        await renderRecentDebates([], false);
+                    }
                 }
             } catch (error) {
                 console.error('加载历史辩论错误:', error);
                 lazyLoadState.debates.hasMore = false;
+
+                // 如果是第一次加载且出错，显示空状态
+                if (!append) {
+                    await renderRecentDebates([], false);
+                }
             } finally {
                 lazyLoadState.debates.loading = false;
             }
@@ -7430,7 +7470,16 @@
 
         async function renderRecentDebates(debates, append = false) {
             const debateList = document.getElementById('debateList');
-            if (!debateList) return;
+            console.log('renderRecentDebates调用:', {
+                debatesCount: debates.length,
+                append,
+                debateListExists: !!debateList
+            });
+
+            if (!debateList) {
+                console.error('debateList元素不存在，无法渲染辩论列表');
+                return;
+            }
 
             if (!append) {
                 debateList.innerHTML = '';
@@ -7474,7 +7523,8 @@
 
             // 如果没有辩论记录并且不是追加模式，显示空状态
             if (debates.length === 0 && !append) {
-                debateList.innerHTML = '<div class="no-debates">暂无辩论记录</div>';
+                const emptyMessage = isLoggedIn ? '暂无辩论记录' : '登录后查看辩论记录';
+                debateList.innerHTML = `<div class="no-debates">${emptyMessage}</div>`;
             }
         }
 
@@ -7509,7 +7559,17 @@
                         <span class="debate-vs">VS</span>
                         ${getAvatarHtml(role2, 'con')}
                     </div>
-                    <div class="debate-time">${timeAgo}</div>
+                    <div class="debate-item-actions">
+                        <div class="debate-time">${timeAgo}</div>
+                        <div class="debate-delete-btn" onclick="event.stopPropagation(); deleteDebate(${debate.id});">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3,6 5,6 21,6"></polyline>
+                                <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg>
+                        </div>
+                    </div>
                 </div>
                 <div class="debate-topic">${escapeHtml(debate.topic)}</div>
             `;
@@ -7529,8 +7589,59 @@
             return debateItem;
         }
 
+        // 删除单个辩论
+        async function deleteDebate(debateId) {
+            if (!confirm('确定要删除这个辩论吗？此操作无法撤销。')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/debate/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: currentUser.id,
+                        debate_id: debateId
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('删除辩论成功:', result.message);
+
+                    // 刷新辩论列表
+                    await updateRecentDebatesList();
+
+                    alert('辩论删除成功');
+                } else {
+                    const errorData = await response.text();
+                    console.error('删除辩论失败:', response.status, errorData);
+                    alert('删除辩论失败，请重试');
+                }
+            } catch (error) {
+                console.error('删除辩论请求出错:', error);
+                alert('删除辩论出错，请重试');
+            }
+        }
+
         async function updateRecentDebatesList() {
             console.log('更新历史辩论列表');
+
+            // 检查DOM元素是否存在
+            const debateList = document.getElementById('debateList');
+            console.log('debateList元素存在吗?', !!debateList);
+
+            if (!debateList) {
+                console.error('debateList元素不存在，无法更新辩论列表');
+                return;
+            }
+
+            // 重置懒加载状态
+            lazyLoadState.debates.offset = 0;
+            lazyLoadState.debates.hasMore = true;
+            lazyLoadState.debates.loading = false;
 
             // 重新加载历史辩论列表
             try {
@@ -8544,6 +8655,40 @@
             } catch (error) {
                 console.error('清空对话失败:', error);
                 alert('清空对话失败，请重试');
+            }
+        }
+
+        // 删除所有辩论
+        async function deleteAllDebates() {
+            if (!confirm('确定要删除所有辩论吗？这将删除您的所有辩论记录，此操作无法撤销。')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/user/debates/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: currentUser.id
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(`成功删除了 ${result.deleted_count} 个辩论！`);
+
+                    // 刷新辩论列表
+                    await updateRecentDebatesList();
+                } else {
+                    const errorData = await response.text();
+                    console.error('删除所有辩论失败:', response.status, errorData);
+                    alert('删除所有辩论失败，请重试');
+                }
+            } catch (error) {
+                console.error('删除所有辩论请求出错:', error);
+                alert('删除所有辩论出错，请重试');
             }
         }
     </script>
