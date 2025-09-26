@@ -8,22 +8,43 @@ pub const PATH: &str = "/api/debate/dialogs";
 #[axum::debug_handler]
 pub async fn handler(
     Extension(database): Extension<Arc<Database>>,
-    Json(RequestParams {
-        user_id,
-        role1_id,
-        role2_id,
-        offset,
-        limit,
-    }): Json<RequestParams>,
+    Json(params): Json<RequestParams>,
 ) -> HttpResult<Json<ResponseData>> {
-    let debate = database
-        .get_debate(user_id, role1_id, role2_id)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("Debate not found"))?;
+    let debate = if let Some(debate_id) = params.debate_id {
+        database
+            .get_debate_by_id(debate_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Debate not found"))?
+    } else if let (Some(role1_id), Some(role2_id)) = (params.role1_id, params.role2_id) {
+        database
+            .get_debate(params.user_id, role1_id, role2_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Debate not found"))?
+    } else {
+        return Err(
+            anyhow::anyhow!("Either debate_id or role1_id/role2_id must be provided").into(),
+        );
+    };
 
-    let paginated_result = database
-        .list_debate_dialogs_paginated(user_id, role1_id, role2_id, offset, limit)
-        .await?;
+    let paginated_result = if let Some(debate_id) = params.debate_id {
+        database
+            .list_debate_dialogs_paginated_by_id(debate_id, params.offset, params.limit)
+            .await?
+    } else if let (Some(role1_id), Some(role2_id)) = (params.role1_id, params.role2_id) {
+        database
+            .list_debate_dialogs_paginated(
+                params.user_id,
+                role1_id,
+                role2_id,
+                params.offset,
+                params.limit,
+            )
+            .await?
+    } else {
+        return Err(
+            anyhow::anyhow!("Either debate_id or role1_id/role2_id must be provided").into(),
+        );
+    };
 
     let dialogs: Vec<DialogItem> = paginated_result
         .items
@@ -51,9 +72,10 @@ pub async fn handler(
 
 #[derive(Deserialize)]
 pub struct RequestParams {
-    pub user_id: i32,
-    pub role1_id: i32,
-    pub role2_id: i32,
+    pub debate_id: Option<i32>, // 新增：通过debate_id查询
+    pub user_id: i32,           // 兼容性：通过用户和角色查询
+    pub role1_id: Option<i32>,  // 可选：当使用debate_id时不需要
+    pub role2_id: Option<i32>,  // 可选：当使用debate_id时不需要
     pub offset: i64,
     pub limit: i64,
 }

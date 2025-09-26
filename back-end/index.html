@@ -4045,6 +4045,9 @@
             avatar: ""
         };
 
+        // 当前辩论ID
+        let currentDebateId = null;
+
         // 当前选择的头像
         let selectedAvatar = '👤';
         let selectedAvatarType = 'default'; // 'default' 或 'custom'
@@ -5435,7 +5438,13 @@
                 });
 
                 if (response.ok) {
-                    console.log('辩论创建成功');
+                    const result = await response.json();
+                    const debateId = result.debate_id;
+                    console.log('辩论创建成功，debate_id:', debateId);
+
+                    // 存储当前辩论ID
+                    currentDebateId = debateId;
+
                     // 进入辩论界面
                     showDebateRoom(topic, selectedRoles.pro, selectedRoles.con);
 
@@ -5486,6 +5495,11 @@
             currentDebateRoles = { pro: proRole, con: conRole };
             currentDebateTopic = topic;
 
+            console.log('设置辩论角色:', {
+                pro: { name: proRole.name, id: proRole.role_id || proRole.id },
+                con: { name: conRole.name, id: conRole.role_id || conRole.id }
+            });
+
             // 重置辩论状态
             debateDialogs = [];
             debateOffset = 0;
@@ -5524,7 +5538,6 @@
         // 辩论会话控制
         let currentDebateRoles = null;
         let currentDebateTopic = null;
-        let currentDebateId = null; // 当前辩论ID
         let debateSessionActive = false;
         let debateAudio = null; // 当前播放的音频
         let isLoadingDebateHistory = false;
@@ -5537,6 +5550,9 @@
             console.log('开始恢复辩论房间状态:', { role1Id, role2Id, debateId, currentUser });
 
             try {
+                // 设置当前辩论ID
+                currentDebateId = parseInt(debateId);
+
                 if (!currentUser || !currentUser.id) {
                     console.error('用户未登录，无法恢复辩论房间');
                     return;
@@ -5573,7 +5589,8 @@
                     name: role1Data.name,
                     description: role1Data.description,
                     traits: role1Data.traits,
-                    image_url: role1Data.image_url
+                    image_url: role1Data.image_url,
+                    voice_type: role1Data.voice_type
                 };
 
                 const role2 = {
@@ -5582,7 +5599,8 @@
                     name: role2Data.name,
                     description: role2Data.description,
                     traits: role2Data.traits,
-                    image_url: role2Data.image_url
+                    image_url: role2Data.image_url,
+                    voice_type: role2Data.voice_type
                 };
 
                 console.log('构建的角色对象:', { role1, role2 });
@@ -5590,6 +5608,7 @@
                 // 获取辩论信息
                 console.log('开始获取辩论信息...');
                 const debatePayload = {
+                    debate_id: parseInt(debateId),
                     user_id: parseInt(currentUser.id),
                     role1_id: parseInt(role1Id),
                     role2_id: parseInt(role2Id),
@@ -5659,6 +5678,7 @@
                 });
 
                 const requestPayload = {
+                    debate_id: parseInt(currentDebateId),
                     user_id: parseInt(userId),
                     role1_id: currentDebateRoles.pro.role_id,
                     role2_id: currentDebateRoles.con.role_id,
@@ -5726,7 +5746,13 @@
 
             // 渲染所有对话
             debateDialogs.forEach(dialog => {
-                const isProRole = dialog.role_id === currentDebateRoles.pro.role_id;
+                console.log('处理对话消息:', {
+                    dialogRoleId: dialog.role_id,
+                    proRoleId: currentDebateRoles.pro.role_id,
+                    conRoleId: currentDebateRoles.con.role_id,
+                    isProRole: parseInt(dialog.role_id) === parseInt(currentDebateRoles.pro.role_id)
+                });
+                const isProRole = parseInt(dialog.role_id) === parseInt(currentDebateRoles.pro.role_id);
                 const role = isProRole ? currentDebateRoles.pro : currentDebateRoles.con;
                 const messageElement = createDebateMessageElement(dialog, role, isProRole);
                 messagesContainer.appendChild(messageElement);
@@ -5929,6 +5955,7 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
+                        debate_id: parseInt(currentDebateId),
                         user_id: parseInt(userId),
                         role1_id: currentDebateRoles.pro.role_id,
                         role2_id: currentDebateRoles.con.role_id,
@@ -5943,7 +5970,13 @@
                 const data = await response.json();
 
                 // 创建新的对话消息
-                const isProRole = data.current_speaker_id === currentDebateRoles.pro.role_id;
+                console.log('新消息角色分配:', {
+                    currentSpeakerId: data.current_speaker_id,
+                    proRoleId: currentDebateRoles.pro.role_id,
+                    conRoleId: currentDebateRoles.con.role_id,
+                    isProRole: parseInt(data.current_speaker_id) === parseInt(currentDebateRoles.pro.role_id)
+                });
+                const isProRole = parseInt(data.current_speaker_id) === parseInt(currentDebateRoles.pro.role_id);
                 const role = isProRole ? currentDebateRoles.pro : currentDebateRoles.con;
 
                 const newDialog = {
