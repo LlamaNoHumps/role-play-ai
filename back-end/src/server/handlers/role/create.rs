@@ -1,7 +1,7 @@
 use crate::{
     database::{
         Database,
-        models::roles::{Gender, VoiceType},
+        models::roles::{AgeGroup, Gender},
     },
     error::HttpResult,
 };
@@ -21,6 +21,7 @@ pub async fn handler(
         traits,
         image_url,
         gender,
+        age_group,
         voice_type,
     }): Json<RequestParams>,
 ) -> HttpResult<Json<ResponseData>> {
@@ -32,7 +33,8 @@ pub async fn handler(
             &traits,
             &image_url,
             gender,
-            voice_type,
+            age_group,
+            &voice_type,
         )
         .await?;
 
@@ -48,7 +50,8 @@ pub struct RequestParams {
     #[serde(rename = "avatar")]
     pub image_url: String,
     pub gender: Gender,
-    pub voice_type: VoiceType,
+    pub age_group: AgeGroup,
+    pub voice_type: String,
 }
 
 #[derive(Serialize)]

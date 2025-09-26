@@ -52,15 +52,17 @@ pub async fn run() {
         .build_layer();
 
     let ai = AI::new(&env.qiniu_ai_api_key);
-    let role_builder = RoleBuilder::new(ai.clone(), Some(socketio.clone()));
 
     let storage_client = Arc::new(storage_client);
     let database = Arc::new(database);
+
+    let reciter = Reciter::new(storage_client.clone(), &env.qiniu_ai_api_key);
+    let role_builder = RoleBuilder::new(ai.clone(), Some(socketio.clone()), reciter.clone());
+
     let role_builder = Arc::new(role_builder);
     let socketio = Arc::new(socketio);
     let auth = auth::Auth::new(database.clone());
 
-    let reciter = Reciter::new(storage_client.clone(), &env.qiniu_ai_api_key);
     let recorder = Recorder::new(&env.qiniu_ai_api_key);
     let database_s = database.clone();
     let summarizer = Arc::new(Summarizer::new(ai.clone(), database.clone()));

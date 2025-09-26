@@ -57,9 +57,7 @@ pub async fn handler_inner(
     let answer = ai.chat_once(&role.prompt(), &text, Some(&history)).await?;
 
     let cleaned_answer = remove_brackets(&answer);
-    let audio_data = reciter
-        .tts(&cleaned_answer, role.gender, role.voice_type)
-        .await?;
+    let audio_data = reciter.tts(&cleaned_answer, &role.voice_type).await?;
     let voice_url = reciter.upload_audio(audio_data).await?;
 
     let timestamp = chrono::Utc::now().timestamp_millis();

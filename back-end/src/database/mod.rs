@@ -4,7 +4,7 @@ pub mod status;
 
 use anyhow::Result;
 use chrono::Utc;
-use models::roles::{Column, Entity, Gender, VoiceType};
+use models::roles::{AgeGroup, Column, Entity, Gender};
 use sea_orm::{
     ActiveValue::{self, Set},
     ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, QueryFilter,
@@ -261,7 +261,8 @@ impl Database {
         traits: &str,
         image: &str,
         gender: Gender,
-        voice_type: VoiceType,
+        age_group: AgeGroup,
+        voice_type: &str,
     ) -> Result<i32> {
         let role = models::roles::ActiveModel {
             id: ActiveValue::default(),
@@ -271,7 +272,8 @@ impl Database {
             traits: Set(traits.to_string()),
             image: Set(image.to_string()),
             gender: Set(gender),
-            voice_type: Set(voice_type),
+            age_group: Set(age_group),
+            voice_type: Set(voice_type.to_string()),
         };
 
         let res = models::roles::Entity::insert(role)
@@ -461,7 +463,7 @@ impl Database {
         };
 
         Ok(format!(
-            "===历史记录总结===\n{}===最近对话===\n{}",
+            "===历史记录总结===\n{}\n===最近对话===\n{}",
             stored_history, recent_history
         ))
     }

@@ -22,7 +22,8 @@ pub struct Model {
     pub traits: String,
     pub image: String,
     pub gender: Gender,
-    pub voice_type: VoiceType,
+    pub age_group: AgeGroup,
+    pub voice_type: String,
 }
 
 #[derive(Clone, Debug, EnumIter, DeriveRelation)]
@@ -106,14 +107,14 @@ impl Display for Gender {
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
-pub enum VoiceType {
+pub enum AgeGroup {
     #[serde(rename = "mature")]
     Mature,
     #[serde(rename = "young")]
     Young,
 }
 
-impl ValueType for VoiceType {
+impl ValueType for AgeGroup {
     fn try_from(v: Value) -> Result<Self, ValueTypeErr> {
         match v {
             Value::String(Some(value)) => match value.as_str() {
@@ -126,7 +127,7 @@ impl ValueType for VoiceType {
     }
 
     fn type_name() -> String {
-        "VoiceType".to_string()
+        "AgeGroup".to_string()
     }
 
     fn array_type() -> ArrayType {
@@ -138,16 +139,16 @@ impl ValueType for VoiceType {
     }
 }
 
-impl From<VoiceType> for Value {
-    fn from(value: VoiceType) -> Self {
+impl From<AgeGroup> for Value {
+    fn from(value: AgeGroup) -> Self {
         match value {
-            VoiceType::Mature => Self::String(Some(Box::new("mature".to_string()))),
-            VoiceType::Young => Self::String(Some(Box::new("young".to_string()))),
+            AgeGroup::Mature => Self::String(Some(Box::new("mature".to_string()))),
+            AgeGroup::Young => Self::String(Some(Box::new("young".to_string()))),
         }
     }
 }
 
-impl TryGetable for VoiceType {
+impl TryGetable for AgeGroup {
     fn try_get_by<I: ColIdx>(res: &QueryResult, index: I) -> Result<Self, TryGetError> {
         let value: String = res.try_get_by(index)?;
 
@@ -162,7 +163,7 @@ impl TryGetable for VoiceType {
     }
 }
 
-impl Display for VoiceType {
+impl Display for AgeGroup {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Mature => write!(f, "mature"),
