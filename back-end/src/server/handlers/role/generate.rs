@@ -1,6 +1,6 @@
 use crate::{
     agents::{RoleBuilder, role_builder::RoleBuilt},
-    database::models::roles::{Gender, VoiceType},
+    database::models::roles::{AgeGroup, Gender},
     error::HttpResult,
 };
 use axum::{Extension, Json};
@@ -17,7 +17,7 @@ pub async fn handler(
         description,
         traits,
         gender,
-        voice_type,
+        age_group,
         sid,
     }): Json<RequestParams>,
 ) -> HttpResult<Json<ResponseData>> {
@@ -29,8 +29,8 @@ pub async fn handler(
         None => String::new(),
     };
 
-    let voice_type = match voice_type {
-        Some(voice_type) => voice_type.to_string(),
+    let age_group = match age_group {
+        Some(age_group) => age_group.to_string(),
         None => String::new(),
     };
 
@@ -38,22 +38,17 @@ pub async fn handler(
         description,
         traits,
         gender,
+        age_group,
         voice_type,
     } = role_builder
-        .build(
-            &name,
-            &description,
-            &traits,
-            &gender,
-            &voice_type,
-            Some(sid),
-        )
+        .build(&name, &description, &traits, &gender, &age_group, Some(sid))
         .await?;
 
     Ok(Json(ResponseData {
         description,
         traits,
         gender,
+        age_group,
         voice_type,
     }))
 }
@@ -64,7 +59,7 @@ pub struct RequestParams {
     pub description: Option<String>,
     pub traits: Option<String>,
     pub gender: Option<Gender>,
-    pub voice_type: Option<VoiceType>,
+    pub age_group: Option<AgeGroup>,
     pub sid: String,
 }
 
@@ -73,5 +68,6 @@ pub struct ResponseData {
     pub description: String,
     pub traits: String,
     pub gender: Gender,
-    pub voice_type: VoiceType,
+    pub age_group: AgeGroup,
+    pub voice_type: String,
 }

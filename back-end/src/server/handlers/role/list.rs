@@ -1,7 +1,7 @@
 use crate::{
     database::{
         Database,
-        models::roles::{Gender, VoiceType},
+        models::roles::{AgeGroup, Gender},
     },
     error::HttpResult,
 };
@@ -31,7 +31,7 @@ pub async fn handler(
             traits: role.traits.clone(),
             image_url: role.image.clone(),
             gender: role.gender.clone(),
-            voice_type: role.voice_type.clone(),
+            age_group: role.age_group.clone(),
         });
     }
 
@@ -64,5 +64,5 @@ pub struct ResponseItem {
     pub traits: String,
     pub image_url: String,
     pub gender: Gender,
-    pub voice_type: VoiceType,
+    pub age_group: AgeGroup,
 }

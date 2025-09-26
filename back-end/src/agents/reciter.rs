@@ -1,9 +1,6 @@
 use super::RetryConfig;
-use crate::{
-    database::models::roles::{Gender, VoiceType},
-    storage::StorageClient,
-};
-use anyhow::Result;
+use crate::{database::models::roles::Gender, storage::StorageClient};
+use anyhow::{Result, anyhow};
 use base64::{Engine, engine::general_purpose};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc, time::Duration};
@@ -43,15 +40,8 @@ impl Reciter {
         }
     }
 
-    pub async fn tts(&self, text: &str, gender: Gender, voice_type: VoiceType) -> Result<Vec<u8>> {
+    pub async fn tts(&self, text: &str, voice_type: &str) -> Result<Vec<u8>> {
         const URL: &str = "https://openai.qiniu.com/v1/voice/tts";
-
-        let voice_type = match (gender, voice_type) {
-            (Gender::Male, VoiceType::Mature) => "qiniu_zh_male_ybxknjs",
-            (Gender::Male, VoiceType::Young) => "qiniu_zh_male_hlsnkk",
-            (Gender::Female, VoiceType::Mature) => "qiniu_zh_female_zxjxnjs",
-            (Gender::Female, VoiceType::Young) => "qiniu_zh_female_tmjxxy",
-        };
 
         let data = RequestParams {
             audio: AudioInfo {
@@ -127,6 +117,77 @@ impl Reciter {
 
         Ok(url)
     }
+
+    pub async fn fetch_voice_map(&self) -> Result<HashMap<String, VoiceInfo>> {
+        const URL: &str = "https://openai.qiniu.com/v1/voice/list";
+
+        let mut last_error = None;
+        for attempt in 0..self.retry_config.max_retries {
+            match self.fetch_voice_list_attempt(URL).await {
+                Ok(voice_list) => {
+                    if attempt > 0 {
+                        tracing::info!("Fetch voice list succeeded on attempt {}", attempt + 1,);
+                    }
+
+                    let mut voice_map = HashMap::new();
+                    for v in voice_list {
+                        voice_map.insert(
+                            v.voice_type.clone(),
+                            VoiceInfo {
+                                voice_name: v.voice_name.clone(),
+                                gender: match v.voice_type.as_str() {
+                                    vt if vt.contains("male") => Gender::Male,
+                                    vt if vt.contains("female") => Gender::Female,
+                                    _ => return Err(anyhow!("Unknown gender")),
+                                },
+                                category: v.category.clone(),
+                            },
+                        );
+                    }
+
+                    return Ok(voice_map);
+                }
+                Err(e) => {
+                    last_error = Some(e);
+                    if attempt < self.retry_config.max_retries - 1 {
+                        let delay =
+                            Duration::from_millis(self.retry_config.base_delay_ms * (1 << attempt)); // 指数退避
+                        tracing::warn!(
+                            "Fetch voice list failed on attempt {}/{}, retrying in {:?}: {}",
+                            attempt + 1,
+                            self.retry_config.max_retries,
+                            delay,
+                            last_error.as_ref().unwrap()
+                        );
+                        sleep(delay).await;
+                    }
+                }
+            }
+        }
+
+        tracing::error!(
+            "Fetch voice list failed after {} attempts: {}",
+            self.retry_config.max_retries,
+            last_error.as_ref().unwrap()
+        );
+        Err(last_error.unwrap())
+    }
+
+    async fn fetch_voice_list_attempt(&self, url: &str) -> Result<Vec<VoiceItem>> {
+        let res = self.http_client.get(url).send().await?;
+
+        if !res.status().is_success() {
+            return Err(anyhow::anyhow!(
+                "Fetch voice list API returned status: {}",
+                res.status()
+            ));
+        }
+
+        let body = res.text().await?;
+        let res = serde_json::from_str::<Vec<VoiceItem>>(&body)?;
+
+        Ok(res)
+    }
 }
 
 // 去除文本括号中的内容
@@ -178,6 +239,22 @@ struct Response {
     _others: HashMap<String, serde_json::Value>,
 }
 
+#[derive(Deserialize)]
+pub struct VoiceItem {
+    pub voice_name: String,
+    pub voice_type: String,
+    pub category: String,
+    #[serde(flatten)]
+    _others: HashMap<String, serde_json::Value>,
+}
+
+#[derive(Serialize)]
+pub struct VoiceInfo {
+    pub voice_name: String,
+    pub gender: Gender,
+    pub category: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -191,11 +268,7 @@ mod tests {
         storage_client.init_bucket().await.unwrap();
         let reciter = Reciter::new(Arc::new(storage_client), &env.qiniu_ai_api_key);
         let audio_data = reciter
-            .tts(
-                "你好，欢迎使用七牛云语音合成服务",
-                Gender::Female,
-                VoiceType::Mature,
-            )
+            .tts("你好，欢迎使用七牛云语音合成服务", "qiniu_zh_female_cxjxgw")
             .await
             .unwrap();
 
