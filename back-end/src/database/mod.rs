@@ -8,7 +8,7 @@ use models::roles::{Column, Entity, Gender, VoiceType};
 use sea_orm::{
     ActiveValue::{self, Set},
     ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    sea_query::Expr,
+    prelude::Expr,
 };
 
 const DB_NAME: &str = "role-play-ai";
@@ -107,6 +107,7 @@ impl Database {
             user_id: Set(user_id),
             role_id: Set(role_id),
             last_dialog_timestamp: Set(Utc::now().timestamp()),
+            history: Set(String::new()),
         };
 
         models::conversations::Entity::insert(conversation)
@@ -160,36 +161,6 @@ impl Database {
             .await?;
 
         Ok(())
-    }
-
-    pub async fn list_dialogs(
-        &self,
-        user_id: i32,
-        role_id: i32,
-    ) -> Result<Vec<models::conversation_template::Model>> {
-        let table_name = format!("conv_{}_{}", user_id, role_id);
-        let sql = format!("SELECT * FROM `{}` ORDER BY timestamp ASC", table_name);
-
-        let res = self
-            .connection
-            .query_all(sea_orm::Statement::from_string(
-                self.connection.get_database_backend(),
-                sql,
-            ))
-            .await?;
-
-        let dialogs = res
-            .into_iter()
-            .map(|row| models::conversation_template::Model {
-                id: row.try_get("", "id").unwrap_or(0),
-                is_user: row.try_get("", "is_user").unwrap_or(false),
-                timestamp: row.try_get("", "timestamp").unwrap_or(0),
-                text: row.try_get("", "text").unwrap_or_default(),
-                voice: row.try_get("", "voice").ok(),
-            })
-            .collect::<Vec<models::conversation_template::Model>>();
-
-        Ok(dialogs)
     }
 
     pub async fn list_dialogs_paginated(
@@ -359,22 +330,6 @@ impl Database {
         Ok(roles)
     }
 
-    pub async fn get_history(&self, user_id: i32, role_id: i32) -> Result<String> {
-        let dialogs = self.list_dialogs(user_id, role_id).await?;
-        let history = dialogs
-            .into_iter()
-            .map(|d| {
-                if d.is_user {
-                    format!("User: {}", d.text)
-                } else {
-                    format!("Assistant: {}", d.text)
-                }
-            })
-            .collect::<Vec<String>>()
-            .join("\n");
-        Ok(history)
-    }
-
     pub async fn delete_conversation(&self, user_id: i32, role_id: i32) -> Result<()> {
         let table_name = format!("conv_{}_{}", user_id, role_id);
         let drop_sql = format!("DROP TABLE IF EXISTS `{}`", table_name);
@@ -413,6 +368,122 @@ impl Database {
         } else {
             Ok(false)
         }
+    }
+
+    pub async fn get_dialog_count(&self, user_id: i32, role_id: i32) -> Result<i64> {
+        let table_name = format!("conv_{}_{}", user_id, role_id);
+        let sql = format!("SELECT COUNT(*) as count FROM `{}`", table_name);
+
+        let res = self
+            .connection
+            .query_one(sea_orm::Statement::from_string(
+                self.connection.get_database_backend(),
+                sql,
+            ))
+            .await?;
+
+        Ok(res.unwrap().try_get("", "count").unwrap_or(0))
+    }
+
+    pub async fn get_recent_dialogs(
+        &self,
+        user_id: i32,
+        role_id: i32,
+        limit: i64,
+    ) -> Result<Vec<models::conversation_template::Model>> {
+        let table_name = format!("conv_{}_{}", user_id, role_id);
+        let sql = format!(
+            "SELECT * FROM `{}` ORDER BY timestamp DESC LIMIT {}",
+            table_name, limit
+        );
+
+        let res = self
+            .connection
+            .query_all(sea_orm::Statement::from_string(
+                self.connection.get_database_backend(),
+                sql,
+            ))
+            .await?;
+
+        let mut dialogs = res
+            .into_iter()
+            .map(|row| models::conversation_template::Model {
+                id: row.try_get("", "id").unwrap_or(0),
+                is_user: row.try_get("", "is_user").unwrap_or(false),
+                timestamp: row.try_get("", "timestamp").unwrap_or(0),
+                text: row.try_get("", "text").unwrap_or_default(),
+                voice: row.try_get("", "voice").ok(),
+            })
+            .collect::<Vec<models::conversation_template::Model>>();
+
+        dialogs.reverse();
+        Ok(dialogs)
+    }
+
+    pub async fn get_conversation(
+        &self,
+        user_id: i32,
+        role_id: i32,
+    ) -> Result<Option<models::conversations::Model>> {
+        let conversation = models::conversations::Entity::find()
+            .filter(models::conversations::Column::UserId.eq(user_id))
+            .filter(models::conversations::Column::RoleId.eq(role_id))
+            .one(&self.connection)
+            .await?;
+
+        Ok(conversation)
+    }
+
+    pub async fn update_conversation_history(
+        &self,
+        user_id: i32,
+        role_id: i32,
+        history: &str,
+    ) -> Result<()> {
+        models::conversations::Entity::update_many()
+            .col_expr(
+                models::conversations::Column::History,
+                Expr::value(history.to_string()),
+            )
+            .filter(models::conversations::Column::UserId.eq(user_id))
+            .filter(models::conversations::Column::RoleId.eq(role_id))
+            .exec(&self.connection)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn get_history(&self, user_id: i32, role_id: i32) -> Result<String> {
+        let conversation = self.get_conversation(user_id, role_id).await?;
+        let stored_history = conversation
+            .map(|c| c.history)
+            .filter(|h| !h.is_empty() && h != "无")
+            .unwrap_or("无".to_string());
+
+        let recent_dialogs = self.get_recent_dialogs(user_id, role_id, 10).await?;
+        let recent_history = {
+            let recent_history = recent_dialogs
+                .into_iter()
+                .map(|d| {
+                    if d.is_user {
+                        format!("User: {}", d.text)
+                    } else {
+                        format!("Assistant: {}", d.text)
+                    }
+                })
+                .collect::<Vec<String>>()
+                .join("\n");
+
+            if recent_history.is_empty() {
+                "无".to_string()
+            } else {
+                recent_history
+            }
+        };
+
+        Ok(format!(
+            "===历史记录总结===\n{}===最近对话===\n{}",
+            stored_history, recent_history
+        ))
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::{
-    agents::AI,
+    agents::{AI, Summarizer},
     database::Database,
     reciter::{Reciter, remove_brackets},
 };
@@ -15,9 +15,10 @@ pub async fn handler(
     ai: Extension<Arc<AI>>,
     database: Extension<Arc<Database>>,
     reciter: Extension<Reciter>,
+    summarizer: Extension<Arc<Summarizer>>,
     data: Data<MessageData>,
 ) {
-    if let Err(e) = handler_inner(socket, ai, database, reciter, data).await {
+    if let Err(e) = handler_inner(socket, ai, database, reciter, summarizer, data).await {
         tracing::error!("socket message handler error: {}", e);
     }
 }
@@ -27,6 +28,7 @@ pub async fn handler_inner(
     Extension(ai): Extension<Arc<AI>>,
     Extension(database): Extension<Arc<Database>>,
     Extension(reciter): Extension<Reciter>,
+    Extension(summarizer): Extension<Arc<Summarizer>>,
     Data(MessageData {
         user_id,
         role_id,
@@ -79,6 +81,10 @@ pub async fn handler_inner(
             voice_url,
         },
     )?;
+
+    if let Err(e) = summarizer.check_and_trigger(user_id, role_id).await {
+        tracing::warn!("Summarizer trigger failed: {}", e);
+    }
 
     Ok(())
 }

@@ -11,6 +11,8 @@ pub struct Model {
     pub user_id: i32,
     pub role_id: i32,
     pub last_dialog_timestamp: i64,
+    #[sea_orm(column_type = "Text")]
+    pub history: String,
 }
 
 #[derive(Clone, Debug, EnumIter, DeriveRelation)]
