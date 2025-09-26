@@ -170,6 +170,14 @@ pub async fn run() {
             handlers::debate::dialogs::PATH,
             post(handlers::debate::dialogs::handler),
         )
+        .route(
+            handlers::debate::delete::PATH,
+            post(handlers::debate::delete::handler),
+        )
+        .route(
+            handlers::user::debates::PATH,
+            post(handlers::user::debates::handler),
+        )
         .layer(middleware::from_fn(trace_middleware))
         .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
         .layer(Extension(storage_client))

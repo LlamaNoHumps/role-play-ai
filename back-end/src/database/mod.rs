@@ -804,27 +804,6 @@ impl Database {
         })
     }
 
-    pub async fn delete_debate(&self, user_id: i32, role1_id: i32, role2_id: i32) -> Result<()> {
-        let table_name = format!("debate_{}_{}_{}", user_id, role1_id, role2_id);
-        let drop_sql = format!("DROP TABLE IF EXISTS `{}`", table_name);
-
-        self.connection
-            .execute(sea_orm::Statement::from_string(
-                self.connection.get_database_backend(),
-                drop_sql,
-            ))
-            .await?;
-
-        models::debates::Entity::delete_many()
-            .filter(models::debates::Column::UserId.eq(user_id))
-            .filter(models::debates::Column::Role1Id.eq(role1_id))
-            .filter(models::debates::Column::Role2Id.eq(role2_id))
-            .exec(&self.connection)
-            .await?;
-
-        Ok(())
-    }
-
     pub async fn list_debate_dialogs_paginated(
         &self,
         user_id: i32,
@@ -899,6 +878,67 @@ impl Database {
             .exec(&self.connection)
             .await?;
         Ok(())
+    }
+
+    pub async fn get_debate_by_id(&self, debate_id: i32) -> Result<Option<models::debates::Model>> {
+        let debate = models::debates::Entity::find_by_id(debate_id)
+            .one(&self.connection)
+            .await?;
+
+        Ok(debate)
+    }
+
+    pub async fn delete_debate_with_dialogs(&self, debate_id: i32) -> Result<()> {
+        if let Some(debate) = self.get_debate_by_id(debate_id).await? {
+            let table_name = format!(
+                "debate_{}_{}_{}",
+                debate.user_id, debate.role1_id, debate.role2_id
+            );
+            let drop_sql = format!("DROP TABLE IF EXISTS `{}`", table_name);
+
+            self.connection
+                .execute(sea_orm::Statement::from_string(
+                    self.connection.get_database_backend(),
+                    drop_sql,
+                ))
+                .await?;
+
+            models::debates::Entity::delete_by_id(debate_id)
+                .exec(&self.connection)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn delete_all_user_debates(&self, user_id: i32) -> Result<i32> {
+        let debates = models::debates::Entity::find()
+            .filter(models::debates::Column::UserId.eq(user_id))
+            .all(&self.connection)
+            .await?;
+
+        let count = debates.len() as i32;
+
+        for debate in debates {
+            let table_name = format!(
+                "debate_{}_{}_{}",
+                debate.user_id, debate.role1_id, debate.role2_id
+            );
+            let drop_sql = format!("DROP TABLE IF EXISTS `{}`", table_name);
+
+            self.connection
+                .execute(sea_orm::Statement::from_string(
+                    self.connection.get_database_backend(),
+                    drop_sql,
+                ))
+                .await?;
+
+            models::debates::Entity::delete_by_id(debate.id)
+                .exec(&self.connection)
+                .await?;
+        }
+
+        Ok(count)
     }
 }
 
