@@ -1,5 +1,3 @@
-use std::{sync::Arc, time::Duration};
-
 use crate::{
     agents::{AI, RoleBuilder, Summarizer},
     database::Database,
@@ -16,6 +14,7 @@ use axum::{
     routing::{get, post},
 };
 use socketioxide::{SocketIo, extract::SocketRef};
+use std::{sync::Arc, time::Duration};
 use tower_http::services::ServeDir;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -64,6 +63,7 @@ pub async fn run() {
     let reciter = Reciter::new(storage_client.clone(), &env.qiniu_ai_api_key);
     let recorder = Recorder::new(&env.qiniu_ai_api_key);
     let database_s = database.clone();
+    let summarizer = Arc::new(Summarizer::new(ai.clone(), database.clone()));
     let ai = Arc::new(ai);
     socketio.ns("/", |s: SocketRef| {
         sockets::connect(&s);
@@ -75,6 +75,7 @@ pub async fn run() {
         s.extensions.insert(ai);
         s.extensions.insert(reciter);
         s.extensions.insert(recorder);
+        s.extensions.insert(summarizer);
     });
 
     let router = Router::new()

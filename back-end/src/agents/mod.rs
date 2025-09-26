@@ -57,19 +57,17 @@ impl AI {
         user: &str,
         history: Option<&str>,
     ) -> Result<String> {
-        let system = if let Some(history) = history {
-            format!(
-                r#"{system}
-Below is the recent conversation history (most recent at bottom):
-{history}
-"#
-            )
-        } else {
-            system.to_string()
-        };
+        let history = history.unwrap_or_default();
 
-        let res = prompt!(&system, "{{user}}\nAssistant:")
-            .run(&parameters!("user" => user), &self.thinking_executor)
+        println!("System Prompt:\n{}", system);
+        println!("History:\n{}", history);
+        println!("User Input:\n{}", user);
+
+        let res = prompt!("{{system}}\n{{history}}", "{{user}}\nAssistant:")
+            .run(
+                &parameters!("system" => system, "history" => history, "user" => user),
+                &self.thinking_executor,
+            )
             .await?
             .to_immediate()
             .await?
