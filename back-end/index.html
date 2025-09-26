@@ -1300,6 +1300,7 @@
             margin-top: 4px;
             text-align: right;
             font-weight: 400;
+            transition: opacity 0.3s ease;
         }
 
         .message.user .message-timestamp {
@@ -2537,6 +2538,9 @@
             console.log('消息已添加，重新渲染界面');
             renderChatMessages();
 
+            // 触发动态时间更新
+            onNewMessageAdded();
+
             // 自动播放AI回复的语音
             if (data.voice_url) {
                 console.log('自动播放AI语音:', data.voice_url);
@@ -2780,6 +2784,89 @@
             }
         }
 
+        // 动态时间更新系统
+        let timeUpdateInterval = null;
+
+        // 启动动态时间更新
+        function startTimeUpdates() {
+            // 清除现有的定时器
+            if (timeUpdateInterval) {
+                clearInterval(timeUpdateInterval);
+            }
+
+            // 每30秒更新一次时间显示
+            timeUpdateInterval = setInterval(updateAllTimestamps, 30000);
+        }
+
+        // 更新页面上所有的时间戳显示
+        function updateAllTimestamps() {
+            const timestampElements = document.querySelectorAll('.message-timestamp[data-timestamp]');
+            let hasRecentMessages = false;
+            let updatedCount = 0;
+
+            console.log(`[时间更新] 找到 ${timestampElements.length} 个时间戳元素`);
+
+            timestampElements.forEach(element => {
+                const originalTimestamp = parseInt(element.getAttribute('data-timestamp'));
+                if (originalTimestamp) {
+                    const now = Date.now();
+                    const diff = now - originalTimestamp;
+
+                    // 检查是否有1小时内的消息
+                    if (diff < 3600000) {
+                        hasRecentMessages = true;
+                    }
+
+                    const newText = formatTimestamp(originalTimestamp);
+                    // 只有当文本发生变化时才更新DOM
+                    if (element.textContent !== newText) {
+                        console.log(`[时间更新] 更新时间: "${element.textContent}" -> "${newText}"`);
+                        element.textContent = newText;
+                        updatedCount++;
+                        // 添加淡入效果，提示用户时间已更新
+                        element.style.opacity = '0.6';
+                        setTimeout(() => {
+                            element.style.opacity = '1';
+                        }, 150);
+                    }
+                }
+            });
+
+            console.log(`[时间更新] 完成更新，共更新了 ${updatedCount} 个时间戳，有最近消息: ${hasRecentMessages}`);
+
+            // 如果没有最近的消息，减少更新频率
+            if (!hasRecentMessages) {
+                adjustUpdateFrequency(false);
+            }
+        }
+
+        // 调整更新频率
+        function adjustUpdateFrequency(hasRecentMessages) {
+            if (timeUpdateInterval) {
+                clearInterval(timeUpdateInterval);
+            }
+
+            // 如果有最近消息，30秒更新一次；否则2分钟更新一次
+            const interval = hasRecentMessages ? 30000 : 120000;
+            timeUpdateInterval = setInterval(updateAllTimestamps, interval);
+        }
+
+        // 停止动态时间更新
+        function stopTimeUpdates() {
+            if (timeUpdateInterval) {
+                clearInterval(timeUpdateInterval);
+                timeUpdateInterval = null;
+            }
+        }
+
+        // 当添加新消息时，重置更新频率
+        function onNewMessageAdded() {
+            // 立即更新一次时间戳
+            updateAllTimestamps();
+            // 重新启动高频更新
+            startTimeUpdates();
+        }
+
         // 获取默认角色数据（作为fallback）
         function getDefaultRoles() {
             return [
@@ -2880,7 +2967,30 @@
 
             // 从URL锚点恢复页面状态
             restoreFromUrlHash();
+
+            // 启动动态时间更新
+            startTimeUpdates();
         }
+
+        // 页面卸载时清理资源
+        window.addEventListener('beforeunload', function () {
+            stopTimeUpdates();
+        });
+
+        // 页面可见性变化时的处理
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) {
+                // 页面隐藏时停止更新
+                console.log('[时间更新] 页面隐藏，暂停时间更新');
+                stopTimeUpdates();
+            } else {
+                // 页面显示时恢复更新
+                console.log('[时间更新] 页面显示，恢复时间更新');
+                // 立即更新一次，然后启动定时器
+                updateAllTimestamps();
+                startTimeUpdates();
+            }
+        });
 
         // 更新用户信息显示
         function updateUserInfo() {
@@ -4590,7 +4700,7 @@
                 // 添加时间戳显示
                 const timestampText = formatTimestamp(message.timestamp);
                 if (timestampText) {
-                    messageContent += `<div class="message-timestamp">${timestampText}</div>`;
+                    messageContent += `<div class="message-timestamp" data-timestamp="${message.timestamp}">${timestampText}</div>`;
                 }
 
                 return `
@@ -4676,6 +4786,9 @@
 
             // 重新渲染消息
             renderChatMessages();
+
+            // 触发动态时间更新
+            onNewMessageAdded();
 
             // 显示"正在回复"状态
             showTypingIndicator();
