@@ -3217,6 +3217,20 @@
             flex-shrink: 0;
         }
 
+        /* 辩论打字指示器样式 */
+        .debate-typing-indicator {
+            padding: 20px 0;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .debate-typing-indicator .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
         .debate-controls {
             padding: 20px 30px;
             background: white;
@@ -3779,7 +3793,7 @@
                 <!-- 搜索框 -->
                 <div class="role-search-container">
                     <input type="text" class="role-search-input" id="roleSearchInput" placeholder="搜索角色名称..."
-                        oninput="searchRoles()">
+                        oninput="searchRolesForModal()">
                     <div class="search-icon">🔍</div>
                 </div>
 
@@ -3899,6 +3913,11 @@
 
             socket.on('response', (data) => {
                 console.log('收到response事件:', data);
+
+                // 处理接收到的角色回复消息
+                if (data && data.role_id) {
+                    handleReceivedMessage(data);
+                }
             });
 
             // 定期检查连接状态
@@ -4650,7 +4669,7 @@
                                 <div class="avatar-container" onclick="document.getElementById('avatarInput').click()" title="点击更换头像">
                                     <img id="settingsAvatar" class="user-avatar clickable-avatar" src="" alt="用户头像">
                                     <div class="avatar-overlay">更换</div>
-                                    <input type="file" id="avatarInput" accept="image/*" onchange="uploadAvatar()" style="display: none;">
+                                    <input type="file" id="avatarInput" accept="image/*" onchange="updateUserAvatar()" style="display: none;">
                                 </div>
                             </div>
                     
@@ -4775,12 +4794,23 @@
             const scrollHeight = contentArea.scrollHeight;
             const clientHeight = contentArea.clientHeight;
 
+            // 检查是否有搜索内容
+            const searchInput = document.getElementById('searchInput');
+            const hasSearchTerm = searchInput && searchInput.value.trim().length > 0;
+
             console.log('角色区域滚动检测:', {
                 scrollTop, scrollHeight, clientHeight,
                 distance: scrollHeight - scrollTop - clientHeight,
                 loading: lazyLoadState.roles.loading,
-                hasMore: lazyLoadState.roles.hasMore
+                hasMore: lazyLoadState.roles.hasMore,
+                hasSearchTerm
             });
+
+            // 如果有搜索词，不触发懒加载，避免覆盖搜索结果
+            if (hasSearchTerm) {
+                console.log('搜索模式，跳过懒加载');
+                return;
+            }
 
             // 距离底部100px时开始加载更多
             if (scrollHeight - scrollTop - clientHeight < 100 && !lazyLoadState.roles.loading && lazyLoadState.roles.hasMore) {
@@ -4968,13 +4998,25 @@
 
         // 搜索角色
         async function searchRoles() {
-            const searchTerm = document.getElementById('searchInput').value.trim();
+            console.log('searchRoles函数被调用！');
+
+            // 简化逻辑：主要处理主界面搜索
+            const mainSearchInput = document.getElementById('searchInput');
+            const searchTerm = mainSearchInput?.value?.trim() || '';
+
+            console.log('搜索调试信息:', {
+                searchTerm,
+                rolesCount: roles.length
+            });
 
             if (!searchTerm) {
                 // 如果搜索词为空，显示所有角色
+                console.log('搜索词为空，显示所有角色');
                 renderRoles(roles);
                 return;
             }
+
+            console.log('开始搜索，搜索词:', searchTerm);
 
             try {
                 // 调用后端搜索接口
@@ -5344,8 +5386,8 @@
             }
         }
 
-        // 搜索角色
-        async function searchRoles() {
+        // 角色选择模态框的搜索函数
+        async function searchRolesForModal() {
             const keyword = document.getElementById('roleSearchInput').value.trim();
 
             // 清除之前的搜索定时器
@@ -5772,11 +5814,11 @@
 
             // 头像处理 - 使用角色真实头像
             let avatarHtml;
-            if (role.avatar_url) {
-                if (isEmoji(role.avatar_url)) {
-                    avatarHtml = role.avatar_url;
+            if (role.image_url) {
+                if (isEmoji(role.image_url)) {
+                    avatarHtml = role.image_url;
                 } else {
-                    avatarHtml = `<img src="${role.avatar_url}" alt="${role.name}">`;
+                    avatarHtml = `<img src="${role.image_url}" alt="${role.name}">`;
                 }
             } else {
                 // 如果没有头像，使用默认emoji
@@ -5949,6 +5991,25 @@
                     return;
                 }
 
+                // 确定下一个发言的角色
+                let nextSpeakerId, nextRole, isProRole;
+                if (debateDialogs.length === 0) {
+                    // 第一条消息，从正方开始
+                    nextSpeakerId = currentDebateRoles.pro.role_id;
+                    nextRole = currentDebateRoles.pro;
+                    isProRole = true;
+                } else {
+                    // 轮换发言
+                    const lastSpeakerId = parseInt(debateDialogs[debateDialogs.length - 1].role_id);
+                    const isLastPro = lastSpeakerId === parseInt(currentDebateRoles.pro.role_id);
+                    nextSpeakerId = isLastPro ? currentDebateRoles.con.role_id : currentDebateRoles.pro.role_id;
+                    nextRole = isLastPro ? currentDebateRoles.con : currentDebateRoles.pro;
+                    isProRole = !isLastPro;
+                }
+
+                // 显示打字指示器
+                showDebateTypingIndicator(nextRole, isProRole);
+
                 const response = await fetch('/api/debate/start', {
                     method: 'POST',
                     headers: {
@@ -5961,6 +6022,9 @@
                         role2_id: currentDebateRoles.con.role_id,
                     })
                 });
+
+                // 隐藏打字指示器
+                hideDebateTypingIndicator();
 
                 if (!response.ok) {
                     console.error('辩论API调用失败:', response.status);
@@ -5976,8 +6040,8 @@
                     conRoleId: currentDebateRoles.con.role_id,
                     isProRole: parseInt(data.current_speaker_id) === parseInt(currentDebateRoles.pro.role_id)
                 });
-                const isProRole = parseInt(data.current_speaker_id) === parseInt(currentDebateRoles.pro.role_id);
-                const role = isProRole ? currentDebateRoles.pro : currentDebateRoles.con;
+                const actualIsProRole = parseInt(data.current_speaker_id) === parseInt(currentDebateRoles.pro.role_id);
+                const actualRole = actualIsProRole ? currentDebateRoles.pro : currentDebateRoles.con;
 
                 const newDialog = {
                     id: Date.now(), // 临时ID
@@ -5991,7 +6055,7 @@
                 debateDialogs.push(newDialog);
 
                 // 添加新消息到界面
-                addDebateMessage(newDialog, role, isProRole);
+                addDebateMessage(newDialog, actualRole, actualIsProRole);
 
                 // 等待DOM更新后再自动播放语音
                 if (data.voice_url) {
@@ -6017,6 +6081,8 @@
 
             } catch (error) {
                 console.error('辩论循环错误:', error);
+                // 出错时也要隐藏打字指示器
+                hideDebateTypingIndicator();
             }
         }
 
@@ -8258,15 +8324,77 @@
             }
         }
 
+        // 显示辩论"正在思考"状态
+        function showDebateTypingIndicator(nextRole, isProRole) {
+            const container = document.getElementById('debateMessages');
+            if (!container) return;
+
+            // 移除已存在的typing indicator
+            const existingIndicator = container.querySelector('.debate-typing-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+
+            // 创建简化的打字指示器，只显示浮动的点
+            const typingHTML = `
+                <div class="debate-typing-indicator">
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            `;
+
+            // 添加到消息容器末尾
+            container.insertAdjacentHTML('beforeend', typingHTML);
+
+            // 滚动到底部
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // 隐藏辩论"正在思考"状态
+        function hideDebateTypingIndicator() {
+            const container = document.getElementById('debateMessages');
+            if (!container) return;
+
+            const typingIndicator = container.querySelector('.debate-typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
         // 播放语音
         function playVoice(voiceUrl) {
             try {
-                const audio = new Audio(voiceUrl);
-                audio.play().catch(error => {
-                    console.error('语音播放失败:', error);
-                });
+                // 在用户对话界面中查找对应的音频控件
+                const audioElements = document.querySelectorAll('#chatMessagesNew audio');
+                let targetAudio = null;
+
+                // 找到匹配voiceUrl的音频元素
+                for (const audioElement of audioElements) {
+                    const source = audioElement.querySelector('source');
+                    if (source && source.src === voiceUrl) {
+                        targetAudio = audioElement;
+                        break;
+                    }
+                }
+
+                if (targetAudio) {
+                    // 使用界面中的音频控件播放
+                    targetAudio.currentTime = 0; // 重置到开头
+                    targetAudio.play().catch(error => {
+                        console.error('语音播放失败:', error);
+                    });
+                } else {
+                    // 如果找不到对应的音频控件，使用原来的方式
+                    const audio = new Audio(voiceUrl);
+                    audio.play().catch(error => {
+                        console.error('语音播放失败:', error);
+                    });
+                }
             } catch (error) {
-                console.error('创建音频对象失败:', error);
+                console.error('播放语音失败:', error);
             }
         }
 
@@ -8486,7 +8614,7 @@
             }
         }
 
-        async function uploadAvatar() {
+        async function updateUserAvatar() {
             const fileInput = document.getElementById('avatarInput');
             const file = fileInput.files[0];
 
