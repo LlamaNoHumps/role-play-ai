@@ -12,6 +12,7 @@ pub struct Model {
     pub role1_id: i32,
     pub role2_id: i32,
     pub topic: String,
+    pub table_name: String,
     pub last_dialog_timestamp: i64,
     #[sea_orm(column_type = "Text")]
     pub history: String,

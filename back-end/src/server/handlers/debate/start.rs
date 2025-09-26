@@ -14,35 +14,48 @@ pub async fn handler(
     Extension(database): Extension<Arc<Database>>,
     Extension(debater): Extension<Debater>,
     Extension(reciter): Extension<Reciter>,
-    Json(RequestParams {
-        user_id,
-        role1_id,
-        role2_id,
-    }): Json<RequestParams>,
+    Json(params): Json<RequestParams>,
 ) -> HttpResult<Json<ResponseData>> {
-    let debate = database
-        .get_debate(user_id, role1_id, role2_id)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("Debate not found"))?;
+    let debate = if let Some(debate_id) = params.debate_id {
+        database
+            .get_debate_by_id(debate_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Debate not found"))?
+    } else if let (Some(role1_id), Some(role2_id)) = (params.role1_id, params.role2_id) {
+        database
+            .get_debate(params.user_id, role1_id, role2_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Debate not found"))?
+    } else {
+        return Err(
+            anyhow::anyhow!("Either debate_id or role1_id/role2_id must be provided").into(),
+        );
+    };
 
     let current_speaker_id = debate.current_speaker_id;
 
-    let role1 = database.get_role(role1_id).await?;
-    let role2 = database.get_role(role2_id).await?;
+    let role1 = database.get_role(debate.role1_id).await?;
+    let role2 = database.get_role(debate.role2_id).await?;
 
-    let (current_role, other_role) = if current_speaker_id == role1_id {
+    let (current_role, other_role) = if current_speaker_id == debate.role1_id {
         (role1, role2)
     } else {
         (role2, role1)
     };
 
     let is_starting = database
-        .get_recent_debate_dialogs(user_id, role1_id, role2_id, 1)
+        .get_debate_dialogs_by_id(debate.id, 1)
         .await?
         .is_empty();
 
     let response = debater
-        .answer(user_id, role1_id, role2_id, current_speaker_id, is_starting)
+        .answer(
+            debate.user_id,
+            debate.role1_id,
+            debate.role2_id,
+            current_speaker_id,
+            is_starting,
+        )
         .await?;
 
     let voice_data = reciter.tts(&response, &current_role.voice_type).await?;
@@ -50,10 +63,8 @@ pub async fn handler(
 
     let timestamp = chrono::Utc::now().timestamp();
     database
-        .add_debate_dialog(
-            user_id,
-            role1_id,
-            role2_id,
+        .add_debate_dialog_by_id(
+            debate.id,
             current_speaker_id,
             timestamp,
             &response,
@@ -62,7 +73,7 @@ pub async fn handler(
         .await?;
 
     database
-        .update_debate_current_speaker_id(user_id, role1_id, role2_id, other_role.id)
+        .update_debate_current_speaker_id_by_id(debate.id, other_role.id)
         .await?;
 
     Ok(Json(ResponseData {
@@ -75,9 +86,10 @@ pub async fn handler(
 
 #[derive(Deserialize)]
 pub struct RequestParams {
-    pub user_id: i32,
-    pub role1_id: i32,
-    pub role2_id: i32,
+    pub debate_id: Option<i32>, // 新增：通过debate_id查询
+    pub user_id: i32,           // 兼容性：通过用户和角色查询
+    pub role1_id: Option<i32>,  // 可选：当使用debate_id时不需要
+    pub role2_id: Option<i32>,  // 可选：当使用debate_id时不需要
 }
 
 #[derive(Serialize)]
