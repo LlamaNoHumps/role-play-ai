@@ -1,5 +1,5 @@
 use crate::{
-    agents::{Debater, Reciter},
+    agents::{Debater, Reciter, reciter::remove_brackets},
     database::Database,
     error::HttpResult,
 };
@@ -58,7 +58,10 @@ pub async fn handler(
         )
         .await?;
 
-    let voice_data = reciter.tts(&response, &current_role.voice_type).await?;
+    let cleaned_response = remove_brackets(&response);
+    let voice_data = reciter
+        .tts(&cleaned_response, &current_role.voice_type)
+        .await?;
     let voice_url = reciter.upload_audio(voice_data).await?;
 
     let timestamp = chrono::Utc::now().timestamp();
