@@ -4,9 +4,10 @@ use crate::{
 };
 use axum::{
     Extension, Json,
-    http::{HeaderMap, StatusCode},
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
+use axum_auth::AuthBearer;
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -15,29 +16,11 @@ pub const PATH: &str = "/api/auth/verify";
 #[axum::debug_handler]
 pub async fn handler(
     Extension(database): Extension<Arc<Database>>,
-    headers: HeaderMap,
+    AuthBearer(token): AuthBearer,
 ) -> Response {
-    let auth_header = match headers.get("Authorization") {
-        Some(header) => header,
-        None => return (StatusCode::UNAUTHORIZED, "Missing authorization header").into_response(),
-    };
-
-    let token = match auth_header.to_str() {
-        Ok(auth_str) => {
-            if auth_str.starts_with("Bearer ") {
-                auth_str.strip_prefix("Bearer ").unwrap()
-            } else {
-                return (StatusCode::UNAUTHORIZED, "Invalid authorization format").into_response();
-            }
-        }
-        Err(_) => {
-            return (StatusCode::UNAUTHORIZED, "Invalid authorization header").into_response();
-        }
-    };
-
-    match unsafe_decode_token(token) {
+    match unsafe_decode_token(&token) {
         Ok(claims) => match database.get_user(&claims.username).await {
-            Ok(user) => match verify_token(token, &user.jwt_secret) {
+            Ok(user) => match verify_token(&token, &user.jwt_secret) {
                 Ok(_verified_claims) => (
                     StatusCode::OK,
                     Json(ResponseData {
