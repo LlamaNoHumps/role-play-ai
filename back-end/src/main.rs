@@ -1,7 +1,6 @@
 use crate::env::{ENV, Env};
 
 mod agents;
-mod auth;
 mod database;
 mod env;
 mod error;
