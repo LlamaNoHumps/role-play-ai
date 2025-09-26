@@ -16,6 +16,7 @@ use std::{sync::Arc, time::Duration};
 use tower_http::services::ServeDir;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
+mod auth;
 mod handlers;
 mod sockets;
 
@@ -57,6 +58,7 @@ pub async fn run() {
     let database = Arc::new(database);
     let role_builder = Arc::new(role_builder);
     let socketio = Arc::new(socketio);
+    let auth = auth::Auth::new(database.clone());
 
     let reciter = Reciter::new(storage_client.clone(), &env.qiniu_ai_api_key);
     let recorder = Recorder::new(&env.qiniu_ai_api_key);
@@ -136,6 +138,7 @@ pub async fn run() {
         .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
         .layer(Extension(storage_client))
         .layer(Extension(database))
+        .layer(Extension(auth))
         .layer(Extension(role_builder))
         .layer(socketio_layer)
         .layer(Extension(socketio));
