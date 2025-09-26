@@ -1293,6 +1293,24 @@
             margin-bottom: 0;
         }
 
+        /* 时间戳样式 */
+        .message-timestamp {
+            font-size: 0.75em;
+            color: #95a5a6;
+            margin-top: 4px;
+            text-align: right;
+            font-weight: 400;
+        }
+
+        .message.user .message-timestamp {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .message.role .message-timestamp {
+            color: #95a5a6;
+            text-align: left;
+        }
+
         /* 语音消息标识文本的样式 */
         .message.has-voice .message-text {
             font-style: italic;
@@ -2397,7 +2415,7 @@
                 id: ++messageIdCounter, // 为接收到的消息也添加ID
                 sender: 'role',
                 message: data.text,
-                timestamp: new Date(data.timestamp),
+                timestamp: data.timestamp || Math.floor(Date.now() / 1000),
                 voice: data.voice_url
             };
 
@@ -2579,6 +2597,73 @@
             if (!str || str.length > 4) return false;
             const emojiRegex = /^[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1F018}-\u{1F270}]$/u;
             return emojiRegex.test(str);
+        }
+
+        // 格式化时间戳为友好显示格式
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return '';
+
+            try {
+                let date;
+
+                // 处理不同的时间戳格式
+                if (typeof timestamp === 'number') {
+                    // 判断是毫秒还是秒格式
+                    if (timestamp > 9999999999) { // 大于这个数字就是毫秒格式
+                        date = new Date(timestamp);
+                    } else {
+                        // 否则是秒格式，转换为毫秒
+                        date = new Date(timestamp * 1000);
+                    }
+                } else if (timestamp instanceof Date) {
+                    date = timestamp;
+                } else {
+                    // 尝试解析字符串或其他格式
+                    date = new Date(timestamp);
+                }
+
+                // 检查日期是否有效
+                if (isNaN(date.getTime())) {
+                    console.error('无效的时间戳:', timestamp);
+                    return '';
+                }
+
+                const now = new Date();
+                const diff = now - date;
+
+                // 如果时间差为负数（未来的时间），直接显示日期
+                if (diff < 0) {
+                    const isThisYear = date.getFullYear() === now.getFullYear();
+                    if (isThisYear) {
+                        return `${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                    } else {
+                        return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                    }
+                }
+
+                // 小于1分钟显示"刚刚"
+                if (diff < 60000) {
+                    return '刚刚';
+                }
+
+                // 小于1小时显示"X分钟前"
+                if (diff < 3600000) {
+                    const minutes = Math.floor(diff / 60000);
+                    return `${minutes}分钟前`;
+                }
+
+                // 超过1小时显示具体日期时间
+                const isThisYear = date.getFullYear() === now.getFullYear();
+
+                if (isThisYear) {
+                    return `${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                } else {
+                    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                }
+            } catch (error) {
+                console.error('时间格式化错误:', error, '原始时间戳:', timestamp);
+                return '';
+            }
         }
 
         // 获取默认角色数据（作为fallback）
@@ -4381,6 +4466,12 @@
                     `;
                 }
 
+                // 添加时间戳显示
+                const timestampText = formatTimestamp(message.timestamp);
+                if (timestampText) {
+                    messageContent += `<div class="message-timestamp">${timestampText}</div>`;
+                }
+
                 return `
                     <div class="message ${isUser ? 'user' : 'role'}${hasVoiceClass}">
                         <div class="message-avatar ${isUser ? 'user' : 'role'}">${avatarHtml}</div>
@@ -4451,7 +4542,7 @@
                 id: ++messageIdCounter, // 为文本消息也添加ID
                 sender: 'user',
                 message: message,
-                timestamp: new Date()
+                timestamp: Math.floor(Date.now() / 1000)
             });
 
             // 清空输入框
@@ -4654,7 +4745,7 @@
                     id: messageId,
                     sender: 'user',
                     message: '[正在将语音转换成文字]',
-                    timestamp: new Date(),
+                    timestamp: Math.floor(Date.now() / 1000),
                     voice: voiceUrl
                 });
 
