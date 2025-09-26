@@ -1,5 +1,5 @@
 use crate::{
-    agents::{AI, Reciter, Recorder, RoleBuilder, Summarizer},
+    agents::{AI, Debater, Reciter, Recorder, RoleBuilder, Summarizer},
     database::Database,
     env::ENV,
     storage::StorageClient,
@@ -58,6 +58,7 @@ pub async fn run() {
 
     let reciter = Reciter::new(storage_client.clone(), &env.qiniu_ai_api_key);
     let role_builder = RoleBuilder::new(ai.clone(), Some(socketio.clone()), reciter.clone());
+    let debater = Debater::new(ai.clone(), database.clone());
 
     let role_builder = Arc::new(role_builder);
     let socketio = Arc::new(socketio);
@@ -66,6 +67,7 @@ pub async fn run() {
     let recorder = Recorder::new(&env.qiniu_ai_api_key);
     let database_s = database.clone();
     let summarizer = Arc::new(Summarizer::new(ai.clone(), database.clone()));
+    let reciter_s = reciter.clone();
     let ai = Arc::new(ai);
     socketio.ns("/", |s: SocketRef| {
         sockets::connect(&s);
@@ -75,7 +77,7 @@ pub async fn run() {
         s.on(sockets::voice::EVENT, sockets::voice::handler);
         s.extensions.insert(database_s);
         s.extensions.insert(ai);
-        s.extensions.insert(reciter);
+        s.extensions.insert(reciter_s);
         s.extensions.insert(recorder);
         s.extensions.insert(summarizer);
     });
@@ -152,12 +154,30 @@ pub async fn run() {
             handlers::user::roles::DELETE_PATH,
             delete(handlers::user::roles::delete_handler),
         )
+        .route(
+            handlers::debate::new::PATH,
+            post(handlers::debate::new::handler),
+        )
+        .route(
+            handlers::debate::start::PATH,
+            post(handlers::debate::start::handler),
+        )
+        .route(
+            handlers::debate::list::PATH,
+            post(handlers::debate::list::handler),
+        )
+        .route(
+            handlers::debate::dialogs::PATH,
+            post(handlers::debate::dialogs::handler),
+        )
         .layer(middleware::from_fn(trace_middleware))
         .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
         .layer(Extension(storage_client))
         .layer(Extension(database))
         .layer(Extension(auth))
         .layer(Extension(role_builder))
+        .layer(Extension(reciter))
+        .layer(Extension(debater))
         .layer(socketio_layer)
         .layer(Extension(socketio));
 
