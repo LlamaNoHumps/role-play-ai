@@ -3888,8 +3888,14 @@
                     document.getElementById('loginUsername').value = username;
                 } else {
                     // 注册失败
-                    const errorData = await response.json().catch(() => ({}));
-                    showError('registerPasswordError', errorData.message || '注册失败，请稍后重试');
+                    const errorText = await response.text().catch(() => '');
+
+                    // 检查是否是用户名已存在的错误
+                    if (errorText.includes('User already exists') || errorText.includes('用户已存在')) {
+                        showError('registerUsernameError', '该用户名已被注册');
+                    } else {
+                        showError('registerPasswordError', errorText || '注册失败，请稍后重试');
+                    }
                 }
             } catch (error) {
                 console.error('注册错误:', error);
@@ -3989,6 +3995,14 @@
                     adjustTextareaHeight(this);
                 });
                 messageInput.addEventListener('keydown', handleInputKeydown);
+            }
+
+            // 注册用户名输入框事件监听 - 清除错误提示
+            const registerUsernameInput = document.getElementById('registerUsername');
+            if (registerUsernameInput) {
+                registerUsernameInput.addEventListener('input', function () {
+                    clearErrors(['registerUsernameError']);
+                });
             }
 
             // 点击模态框外部关闭
