@@ -9,7 +9,7 @@ use axum::{
     Extension, Router,
     extract::DefaultBodyLimit,
     middleware,
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use socketioxide::{SocketIo, extract::SocketRef};
 use std::{sync::Arc, time::Duration};
@@ -115,10 +115,6 @@ pub async fn run() {
             get(handlers::role::search::handler),
         )
         .route(
-            handlers::role::delete::PATH,
-            post(handlers::role::delete::handler),
-        )
-        .route(
             handlers::conversation::new::PATH,
             post(handlers::conversation::new::handler),
         )
@@ -133,6 +129,26 @@ pub async fn run() {
         .route(
             handlers::conversation::delete::PATH,
             post(handlers::conversation::delete::handler),
+        )
+        .route(
+            handlers::user::avatar::PATH,
+            post(handlers::user::avatar::handler),
+        )
+        .route(
+            handlers::user::profile::PATH,
+            get(handlers::user::profile::get_handler).put(handlers::user::profile::put_handler),
+        )
+        .route(
+            handlers::user::conversations::PATH,
+            delete(handlers::user::conversations::handler),
+        )
+        .route(
+            handlers::user::roles::LIST_PATH,
+            get(handlers::user::roles::list_handler),
+        )
+        .route(
+            handlers::user::roles::DELETE_PATH,
+            delete(handlers::user::roles::delete_handler),
         )
         .layer(middleware::from_fn(trace_middleware))
         .layer(DefaultBodyLimit::max(50 * 1024 * 1024))

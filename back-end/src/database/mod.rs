@@ -350,26 +350,6 @@ impl Database {
         Ok(())
     }
 
-    pub async fn delete_role(&self, role_id: i32, user_id: i32) -> Result<bool> {
-        let role = models::roles::Entity::find_by_id(role_id)
-            .one(&self.connection)
-            .await?;
-
-        if let Some(role) = role {
-            if role.user_id != user_id {
-                return Ok(false);
-            }
-
-            models::roles::Entity::delete_by_id(role_id)
-                .exec(&self.connection)
-                .await?;
-
-            Ok(true)
-        } else {
-            Ok(false)
-        }
-    }
-
     pub async fn get_dialog_count(&self, user_id: i32, role_id: i32) -> Result<i64> {
         let table_name = format!("conv_{}_{}", user_id, role_id);
         let sql = format!("SELECT COUNT(*) as count FROM `{}`", table_name);
@@ -484,6 +464,98 @@ impl Database {
             "===历史记录总结===\n{}===最近对话===\n{}",
             stored_history, recent_history
         ))
+    }
+
+    pub async fn update_user_avatar(&self, user_id: i32, avatar_url: &str) -> Result<()> {
+        models::users::Entity::update_many()
+            .col_expr(
+                models::users::Column::Image,
+                Expr::value(avatar_url.to_string()),
+            )
+            .filter(models::users::Column::Id.eq(user_id))
+            .exec(&self.connection)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn update_user_password(&self, user_id: i32, new_password_hash: &str) -> Result<()> {
+        models::users::Entity::update_many()
+            .col_expr(
+                models::users::Column::PasswordHash,
+                Expr::value(new_password_hash.to_string()),
+            )
+            .filter(models::users::Column::Id.eq(user_id))
+            .exec(&self.connection)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn delete_all_user_conversations(&self, user_id: i32) -> Result<u64> {
+        let conversations = models::conversations::Entity::find()
+            .filter(models::conversations::Column::UserId.eq(user_id))
+            .all(&self.connection)
+            .await?;
+
+        let mut deleted_count = 0u64;
+
+        for conv in conversations {
+            let table_name = format!("conv_{}_{}", conv.user_id, conv.role_id);
+            let drop_sql = format!("DROP TABLE IF EXISTS `{}`", table_name);
+
+            self.connection
+                .execute(sea_orm::Statement::from_string(
+                    self.connection.get_database_backend(),
+                    drop_sql,
+                ))
+                .await?;
+
+            deleted_count += 1;
+        }
+
+        models::conversations::Entity::delete_many()
+            .filter(models::conversations::Column::UserId.eq(user_id))
+            .exec(&self.connection)
+            .await?;
+
+        Ok(deleted_count)
+    }
+
+    pub async fn delete_role_and_conversations(&self, role_id: i32) -> Result<()> {
+        let conversations = models::conversations::Entity::find()
+            .filter(models::conversations::Column::RoleId.eq(role_id))
+            .all(&self.connection)
+            .await?;
+
+        for conv in conversations {
+            let table_name = format!("conv_{}_{}", conv.user_id, conv.role_id);
+            let drop_sql = format!("DROP TABLE IF EXISTS `{}`", table_name);
+
+            self.connection
+                .execute(sea_orm::Statement::from_string(
+                    self.connection.get_database_backend(),
+                    drop_sql,
+                ))
+                .await?;
+        }
+
+        models::conversations::Entity::delete_many()
+            .filter(models::conversations::Column::RoleId.eq(role_id))
+            .exec(&self.connection)
+            .await?;
+
+        models::roles::Entity::delete_by_id(role_id)
+            .exec(&self.connection)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn get_user_roles(&self, user_id: i32) -> Result<Vec<models::roles::Model>> {
+        let roles = models::roles::Entity::find()
+            .filter(models::roles::Column::UserId.eq(user_id))
+            .all(&self.connection)
+            .await?;
+        Ok(roles)
     }
 }
 
