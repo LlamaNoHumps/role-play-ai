@@ -1311,6 +1311,103 @@
             text-align: left;
         }
 
+        /* 正在回复的闪动消息框样式 */
+        .typing-indicator {
+            display: none;
+            padding: 8px 0;
+            margin-bottom: 15px;
+        }
+
+        .typing-indicator.show {
+            display: block;
+        }
+
+        .typing-message {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            max-width: 70%;
+        }
+
+        .typing-message .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .typing-message .message-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .typing-bubble {
+            background: #f8f9fa;
+            border-radius: 18px 18px 18px 4px;
+            padding: 16px 20px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            min-height: 20px;
+            display: flex;
+            align-items: center;
+            animation: typingPulse 1.5s infinite ease-in-out;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #95a5a6;
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes typingPulse {
+
+            0%,
+            100% {
+                opacity: 0.8;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.02);
+            }
+        }
+
+        @keyframes typingBounce {
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0);
+            }
+
+            40% {
+                transform: scale(1);
+            }
+        }
+
         /* 语音消息标识文本的样式 */
         .message.has-voice .message-text {
             font-style: italic;
@@ -1871,6 +1968,23 @@
                 width: 45px;
                 height: 45px;
                 font-size: 18px;
+            }
+
+            /* 移动端 typing indicator 样式调整 */
+            .typing-message .message-avatar {
+                width: 35px;
+                height: 35px;
+                font-size: 18px;
+            }
+
+            .typing-bubble {
+                padding: 12px 16px;
+                border-radius: 16px 16px 16px 4px;
+            }
+
+            .typing-dot {
+                width: 6px;
+                height: 6px;
             }
         }
     </style>
@@ -4423,7 +4537,14 @@
             // 隐藏空状态
             emptyDiv.style.display = 'none';
 
-            container.innerHTML = chatMessages.map(message => {
+            // 保存现有的 typing indicator
+            const existingTypingIndicator = container.querySelector('.typing-indicator');
+            let typingIndicatorHTML = '';
+            if (existingTypingIndicator) {
+                typingIndicatorHTML = existingTypingIndicator.outerHTML;
+            }
+
+            const messagesHTML = chatMessages.map(message => {
                 const isUser = message.sender === 'user';
                 let avatarHtml;
 
@@ -4478,7 +4599,10 @@
                         <div class="message-content${hasVoiceClass}">${messageContent}</div>
                     </div>
                 `;
-            }).join('') + '<div id="chatEmptyNew" style="display: none;"></div>';
+            }).join('');
+
+            // 重新设置内容，包括消息和 typing indicator
+            container.innerHTML = messagesHTML + '<div id="chatEmptyNew" style="display: none;"></div>' + typingIndicatorHTML;
 
             // 滚动到底部
             container.scrollTop = container.scrollHeight;
@@ -4761,19 +4885,62 @@
             }
         }
 
-        // 显示"正在回复"状态
+        // 显示"正在回复"状态 - 显示闪动的消息框
         function showTypingIndicator() {
-            const roleNameElement = document.getElementById('currentRoleNameNew');
-            if (roleNameElement && currentChatRole) {
-                roleNameElement.innerHTML = `${currentChatRole.name} <span style="font-size: 12px; color: #7f8c8d; font-weight: normal;">正在回复</span>`;
+            if (!currentChatRole) return;
+
+            const container = document.getElementById('chatMessagesNew');
+            if (!container) return;
+
+            // 移除已存在的typing indicator
+            const existingIndicator = container.querySelector('.typing-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
             }
+
+            // 角色头像处理
+            let avatarHtml;
+            if (currentChatRole.image_url) {
+                if (isEmoji(currentChatRole.image_url)) {
+                    avatarHtml = currentChatRole.image_url;
+                } else {
+                    avatarHtml = `<img src="${currentChatRole.image_url}" alt="${currentChatRole.name}">`;
+                }
+            } else {
+                avatarHtml = '🎭';
+            }
+
+            // 创建闪动的消息框
+            const typingHTML = `
+                <div class="typing-indicator show">
+                    <div class="typing-message">
+                        <div class="message-avatar role">${avatarHtml}</div>
+                        <div class="typing-bubble">
+                            <div class="typing-dots">
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 添加到消息容器末尾
+            container.insertAdjacentHTML('beforeend', typingHTML);
+
+            // 滚动到底部
+            container.scrollTop = container.scrollHeight;
         }
 
-        // 隐藏"正在回复"状态
+        // 隐藏"正在回复"状态 - 移除闪动的消息框
         function hideTypingIndicator() {
-            const roleNameElement = document.getElementById('currentRoleNameNew');
-            if (roleNameElement && currentChatRole) {
-                roleNameElement.textContent = currentChatRole.name;
+            const container = document.getElementById('chatMessagesNew');
+            if (!container) return;
+
+            const typingIndicator = container.querySelector('.typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
             }
         }
 
