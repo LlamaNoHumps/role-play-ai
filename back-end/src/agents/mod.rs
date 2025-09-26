@@ -1,3 +1,4 @@
+mod debater;
 pub mod reciter;
 mod recorder;
 pub mod role_builder;
@@ -11,6 +12,7 @@ use llm_chain::{
 };
 use llm_chain_openai::chatgpt::Executor;
 
+pub use debater::Debater;
 pub use reciter::Reciter;
 pub use recorder::Recorder;
 pub use role_builder::RoleBuilder;

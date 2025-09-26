@@ -74,11 +74,35 @@
             box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
         }
 
+        .debate-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .debate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+
         .recent-chats {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
             overflow-x: hidden;
+            min-height: 0;
+            /* 确保可以收缩 */
         }
 
         .recent-chats h3 {
@@ -87,6 +111,109 @@
             font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 1px;
+        }
+
+        /* 历史辩论样式 */
+        .recent-debates {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 0;
+            /* 确保可以收缩 */
+            border-top: 1px solid #34495e;
+        }
+
+        .recent-debates h3 {
+            margin-bottom: 15px;
+            color: #bdc3c7;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .debate-item {
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(52, 73, 94, 0.3);
+        }
+
+        .debate-item:hover {
+            background: #34495e;
+        }
+
+        .debate-item-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .debate-roles {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .debate-role-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            overflow: hidden;
+        }
+
+        .debate-role-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .debate-role-avatar.pro {
+            border: 2px solid #27ae60;
+        }
+
+        .debate-role-avatar.con {
+            border: 2px solid #e74c3c;
+        }
+
+        .debate-vs {
+            color: #bdc3c7;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .debate-time {
+            color: #7f8c8d;
+            font-size: 11px;
+        }
+
+        .debate-topic {
+            color: #ecf0f1;
+            font-size: 13px;
+            line-height: 1.4;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-clamp: 2;
+        }
+
+        .no-debates {
+            text-align: center;
+            color: #7f8c8d;
+            padding: 20px;
+            font-style: italic;
         }
 
         .chat-item {
@@ -991,6 +1118,189 @@
             color: #2c3e50;
         }
 
+        /* 角色选择弹窗样式 */
+        .role-select-modal {
+            background: white;
+            border-radius: 16px;
+            width: 600px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+            animation: modalSlideIn 0.3s ease-out;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .role-select-info {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .role-search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .role-search-input {
+            width: 100%;
+            padding: 12px 16px 12px 45px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            outline: none;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .role-search-input:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+
+        .role-list-container {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 300px;
+            max-height: 400px;
+        }
+
+        .role-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            padding: 10px 0;
+        }
+
+        .role-item {
+            border: 2px solid #ecf0f1;
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .role-item:hover {
+            border-color: #3498db;
+            background: #f8fcff;
+            transform: translateY(-2px);
+        }
+
+        .role-item.selected {
+            border-color: #3498db;
+            background: #e8f4fd;
+        }
+
+        .role-item-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .role-item-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .role-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .role-item-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .role-item-desc {
+            font-size: 12px;
+            color: #7f8c8d;
+            line-height: 1.4;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .role-list-loading {
+            text-align: center;
+            padding: 30px;
+            color: #7f8c8d;
+        }
+
+        .role-list-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .empty-hint {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .role-select-modal {
+                width: 95vw;
+                max-height: 85vh;
+            }
+
+            .role-list {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-header {
+                padding: 20px 20px 15px;
+            }
+
+            .modal-body {
+                padding: 15px 20px 25px;
+            }
+        }
+
         /* 创建角色页面 */
         .create-role-page {
             display: none;
@@ -1494,6 +1804,266 @@
 
             .modal-header {
                 padding: 20px 20px 15px;
+            }
+        }
+
+        /* 辩论页面样式 */
+        .debate-setup-container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .debate-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .debate-roles-container {
+            display: flex;
+            align-items: stretch;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .debate-role-selection {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .role-label {
+            font-size: 16px;
+            font-weight: 500;
+            color: #34495e;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .role-selector {
+            border: 2px solid #ecf0f1;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+        }
+
+        .role-selector:hover {
+            border-color: #3498db;
+            background: #f0f8ff;
+            transform: translateY(-2px);
+        }
+
+        .role-selector.selected {
+            border-color: #3498db;
+            background: #e8f4fd;
+        }
+
+        /* 未选中状态：横向布局 */
+        .role-preview {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        /* 选中状态：垂直布局 */
+        .role-preview.selected {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .role-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .role-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        /* 选中状态的头像：更大 */
+        .role-preview.selected .role-avatar {
+            width: 60px;
+            height: 60px;
+            font-size: 28px;
+        }
+
+        .role-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* 选中状态的信息：居中对齐 */
+        .role-preview.selected .role-info {
+            text-align: center;
+        }
+
+        .role-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 选中状态的名字：无底边距，更大字体 */
+        .role-preview.selected .role-name {
+            font-size: 18px;
+            margin-bottom: 0;
+        }
+
+        .role-desc {
+            font-size: 14px;
+            color: #7f8c8d;
+            line-height: 1.4;
+        }
+
+        /* 选中状态隐藏描述 */
+        .role-preview.selected .role-desc {
+            display: none;
+        }
+
+        .vs-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border-radius: 50%;
+            font-size: 20px;
+            font-weight: bold;
+            flex-shrink: 0;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+            align-self: center;
+        }
+
+        .debate-settings {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .setting-label {
+            font-size: 16px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .setting-value {
+            font-size: 16px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        .setting-select {
+            padding: 8px 12px;
+            border: 2px solid #ecf0f1;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #2c3e50;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+
+        .setting-select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .setting-radio-group {
+            display: flex;
+            gap: 20px;
+        }
+
+        .setting-radio {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+
+        .setting-radio input[type="radio"] {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            accent-color: #3498db;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .debate-roles-container {
+                flex-direction: column;
+                gap: 20px;
+                align-items: center;
+            }
+
+            .debate-role-selection {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .vs-divider {
+                transform: rotate(90deg);
+                align-self: center;
+            }
+
+            .debate-setup-container {
+                padding: 20px;
+            }
+
+            .setting-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .setting-radio-group {
+                width: 100%;
+                justify-content: flex-start;
             }
         }
 
@@ -2330,6 +2900,383 @@
                 height: 6px;
             }
         }
+
+        /* 辩论房间样式 */
+        .debate-room-content {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .debate-messages {
+            padding: 20px 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: #f8f9fa;
+            height: calc(100vh - 160px);
+            max-height: calc(100vh - 160px);
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
+
+        .debate-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .debate-empty-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.6;
+        }
+
+        .debate-empty-text {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .debate-empty-hint {
+            font-size: 16px;
+            opacity: 0.8;
+            max-width: 400px;
+            line-height: 1.5;
+        }
+
+        .debate-message {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            max-width: 70%;
+            margin-bottom: 15px;
+        }
+
+        .debate-message.pro {
+            align-self: flex-start;
+        }
+
+        .debate-message.con {
+            flex-direction: row-reverse;
+            align-self: flex-end;
+        }
+
+        .debate-message-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            overflow: hidden;
+        }
+
+        .debate-message.pro .debate-message-avatar {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        }
+
+        .debate-message.con .debate-message-avatar {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .debate-message-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .debate-message-content {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 18px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            word-wrap: break-word;
+            line-height: 1.5;
+            position: relative;
+        }
+
+        .debate-message.pro .debate-message-content {
+            background: #e8f5e8;
+            border: 1px solid #d4edda;
+        }
+
+        .debate-message.pro .debate-message-content::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 20px;
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-right: 8px solid #e8f5e8;
+        }
+
+        .debate-message.con .debate-message-content {
+            background: #ffeaa7;
+            border: 1px solid #fab1a0;
+        }
+
+        .debate-message.con .debate-message-content::before {
+            content: '';
+            position: absolute;
+            right: -8px;
+            top: 20px;
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-left: 8px solid #ffeaa7;
+        }
+
+        .debate-message-role {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+
+        .debate-message.pro .debate-message-role {
+            color: #27ae60;
+        }
+
+        .debate-message.con .debate-message-role {
+            color: #e74c3c;
+        }
+
+        /* 辩论消息样式 - 匹配聊天消息结构 */
+        .debate-messages .message {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            max-width: 70%;
+            margin-bottom: 20px;
+        }
+
+        .debate-messages .message.pro {
+            align-self: flex-start;
+        }
+
+        .debate-messages .message.con {
+            flex-direction: row-reverse;
+            align-self: flex-end;
+        }
+
+        .debate-messages .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            overflow: hidden;
+            background: #f8f9fa;
+            border: 2px solid transparent;
+        }
+
+        .debate-messages .message-avatar.pro {
+            border-color: #27ae60;
+        }
+
+        .debate-messages .message-avatar.con {
+            border-color: #e74c3c;
+        }
+
+        .debate-messages .message-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .debate-messages .message-content {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 18px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            word-wrap: break-word;
+            line-height: 1.4;
+            min-width: 180px;
+        }
+
+        .debate-messages .message.pro .message-content {
+            background: #e8f5e8;
+            color: #2c3e50;
+            border: 1px solid #d4edda;
+        }
+
+        .debate-messages .message.con .message-content {
+            background: #fff3cd;
+            color: #2c3e50;
+            border: 1px solid #ffeaa7;
+        }
+
+        .debate-messages .message-content.has-voice {
+            min-width: 280px !important;
+        }
+
+        .debate-messages .message-text {
+            margin-bottom: 4px;
+        }
+
+        .debate-messages .message-text:last-child {
+            margin-bottom: 0;
+        }
+
+        .debate-messages .message-voice {
+            margin-top: 8px;
+            min-width: 250px;
+        }
+
+        .debate-messages .message-voice audio {
+            width: 100%;
+            min-width: 250px;
+            max-width: 400px;
+            height: 36px;
+            border-radius: 8px;
+            background-color: rgba(0, 0, 0, 0.1);
+            outline: none;
+        }
+
+        .debate-messages .message-voice audio::-webkit-media-controls-panel {
+            border-radius: 8px;
+        }
+
+        .debate-messages .message.con .message-voice {
+            text-align: right;
+        }
+
+        .debate-messages .message-timestamp {
+            margin-top: 6px;
+            font-size: 11px;
+            color: #7f8c8d;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .debate-messages .message.con .message-timestamp {
+            text-align: right;
+            justify-content: flex-end;
+        }
+
+        .debate-messages .debate-side-label {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .debate-messages .debate-side-label.pro {
+            background: #27ae60;
+        }
+
+        .debate-messages .debate-side-label.con {
+            background: #e74c3c;
+        }
+
+        .debate-messages .time-text {
+            flex-shrink: 0;
+        }
+
+        .debate-controls {
+            padding: 20px 30px;
+            background: white;
+            border-top: 1px solid #ecf0f1;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .debate-control-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+
+        .debate-start-btn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+        }
+
+        .debate-start-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+
+        .debate-end-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .debate-end-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .debate-control-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .debate-messages {
+                padding: 15px 20px;
+                height: calc(100vh - 140px);
+                max-height: calc(100vh - 140px);
+            }
+
+            .debate-controls {
+                padding: 15px 20px;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .debate-control-btn {
+                width: 100%;
+            }
+
+            .debate-empty {
+                padding: 40px 15px;
+            }
+
+            .debate-empty-icon {
+                font-size: 48px;
+                margin-bottom: 15px;
+            }
+
+            .debate-empty-text {
+                font-size: 20px;
+            }
+
+            .debate-empty-hint {
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 
@@ -2342,6 +3289,10 @@
                     <span>➕</span>
                     创建角色
                 </button>
+                <button class="debate-btn" onclick="showDebate()">
+                    <span>⚔️</span>
+                    角色辩论
+                </button>
             </div>
 
             <div class="recent-chats">
@@ -2352,6 +3303,17 @@
                 <div id="chatsLoading" class="loading-indicator" style="display: none;">
                     <div class="loading-spinner"></div>
                     <div>加载更多对话...</div>
+                </div>
+            </div>
+
+            <div class="recent-debates">
+                <h3>历史辩论</h3>
+                <div id="debateList">
+                    <div class="no-debates">登录后查看辩论记录</div>
+                </div>
+                <div id="debatesLoading" class="loading-indicator" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <div>加载更多辩论...</div>
                 </div>
             </div>
         </div>
@@ -2578,6 +3540,110 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 辩论页面 -->
+            <div class="create-role-page" id="debatePage">
+                <div class="create-role-header">
+                    <h2 class="page-title">角色辩论设置</h2>
+                    <button class="back-btn" onclick="backToHome()">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                        </svg>
+                        返回
+                    </button>
+                </div>
+
+                <div class="create-role-content">
+                    <div class="debate-setup-container">
+                        <!-- 辩论主题设置 -->
+                        <div class="debate-section">
+                            <h3 class="section-title">辩论主题</h3>
+                            <div class="role-input-group">
+                                <textarea id="debateTopic" class="role-textarea"
+                                    placeholder="请输入辩论主题，例如：人工智能的发展是否会对人类就业产生负面影响？" maxlength="200" rows="3"></textarea>
+                                <div class="error-message" id="debateTopicError"></div>
+                            </div>
+                        </div>
+
+                        <!-- 角色选择区域 -->
+                        <div class="debate-section">
+                            <h3 class="section-title">选择辩论角色</h3>
+                            <div class="debate-roles-container">
+                                <div class="debate-role-selection">
+                                    <h4 class="role-label">正方角色</h4>
+                                    <div class="role-selector" id="proRoleSelector" onclick="showRoleSelection('pro')">
+                                        <div class="role-preview" id="proRolePreview">
+                                            <div class="role-avatar">➕</div>
+                                            <div class="role-info">
+                                                <div class="role-name">点击选择正方角色</div>
+                                                <div class="role-desc">支持辩论主题的一方</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="vs-divider">
+                                    <span>VS</span>
+                                </div>
+
+                                <div class="debate-role-selection">
+                                    <h4 class="role-label">反方角色</h4>
+                                    <div class="role-selector" id="conRoleSelector" onclick="showRoleSelection('con')">
+                                        <div class="role-preview" id="conRolePreview">
+                                            <div class="role-avatar">➕</div>
+                                            <div class="role-info">
+                                                <div class="role-name">点击选择反方角色</div>
+                                                <div class="role-desc">反对辩论主题的一方</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 开始辩论按钮 -->
+                        <button type="button" class="create-submit-btn" id="startDebateBtn" onclick="startDebate()">
+                            开始辩论
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 辩论房间界面 -->
+            <div class="create-role-page" id="debateRoomPage">
+                <div class="create-role-header">
+                    <h2 class="page-title" id="debateRoomTitle">辩论主题</h2>
+                    <button class="back-btn" onclick="backToHome()">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" />
+                        </svg>
+                        返回
+                    </button>
+                </div>
+
+                <div class="debate-room-content">
+                    <div class="debate-messages" id="debateMessages">
+                        <div class="debate-empty" id="debateEmpty">
+                            <div class="debate-empty-icon">⚔️</div>
+                            <div class="debate-empty-text">辩论即将开始</div>
+                            <div class="debate-empty-hint">点击"开始辩论"按钮开始这场精彩的辩论</div>
+                        </div>
+                    </div>
+
+                    <div class="debate-controls">
+                        <button class="debate-control-btn debate-start-btn" id="debateStartBtn"
+                            onclick="startDebateSession()">
+                            开始辩论
+                        </button>
+                        <button class="debate-control-btn debate-end-btn" id="debateEndBtn" onclick="endDebateSession()"
+                            disabled>
+                            结束辩论
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -2665,6 +3731,50 @@
 
                     <button type="submit" class="auth-submit" id="registerSubmit">注册</button>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 角色选择弹窗 -->
+    <div class="modal-overlay" id="roleSelectModal">
+        <div class="role-select-modal">
+            <button class="modal-close" onclick="closeRoleSelectModal()">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path
+                        d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z" />
+                </svg>
+            </button>
+
+            <div class="modal-header">
+                <h2 class="modal-title">选择角色</h2>
+                <div class="role-select-info">
+                    <span id="roleSelectSideText">选择正方角色</span>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <!-- 搜索框 -->
+                <div class="role-search-container">
+                    <input type="text" class="role-search-input" id="roleSearchInput" placeholder="搜索角色名称..."
+                        oninput="searchRoles()">
+                    <div class="search-icon">🔍</div>
+                </div>
+
+                <!-- 角色列表容器 -->
+                <div class="role-list-container" id="roleListContainer">
+                    <div class="role-list" id="roleList">
+                        <!-- 角色列表将在这里动态加载 -->
+                    </div>
+                    <div class="role-list-loading" id="roleListLoading" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <div>加载更多角色...</div>
+                    </div>
+                    <div class="role-list-empty" id="roleListEmpty" style="display: none;">
+                        <div class="empty-icon">🎭</div>
+                        <div class="empty-text">暂无角色</div>
+                        <div class="empty-hint">请尝试其他搜索关键词</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -2950,6 +4060,13 @@
                 hasMore: true,
                 total: 0
             },
+            debates: {
+                offset: 0,
+                limit: 15,
+                loading: false,
+                hasMore: true,
+                total: 0
+            },
             dialogs: {
                 offset: 0,
                 limit: 20,
@@ -3141,6 +4258,50 @@
             }
         }
 
+        // 获取相对时间显示
+        function getTimeAgo(timestamp) {
+            if (!timestamp) return '';
+
+            try {
+                let date;
+                if (typeof timestamp === 'number') {
+                    if (timestamp > 9999999999) {
+                        date = new Date(timestamp);
+                    } else {
+                        date = new Date(timestamp * 1000);
+                    }
+                } else {
+                    date = new Date(timestamp);
+                }
+
+                if (isNaN(date.getTime())) {
+                    return '';
+                }
+
+                const now = new Date();
+                const diff = now - date;
+
+                if (diff < 0) return '刚刚';
+                if (diff < 60000) return '刚刚';
+                if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
+                if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
+                if (diff < 604800000) return `${Math.floor(diff / 86400000)}天前`;
+
+                return formatTimestamp(timestamp);
+            } catch (error) {
+                console.error('时间计算错误:', error);
+                return '';
+            }
+        }
+
+        // HTML转义函数
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // 动态时间更新系统
         let timeUpdateInterval = null;
 
@@ -3175,16 +4336,35 @@
                     }
 
                     const newText = formatTimestamp(originalTimestamp);
-                    // 只有当文本发生变化时才更新DOM
-                    if (element.textContent !== newText) {
-                        console.log(`[时间更新] 更新时间: "${element.textContent}" -> "${newText}"`);
-                        element.textContent = newText;
-                        updatedCount++;
-                        // 添加淡入效果，提示用户时间已更新
-                        element.style.opacity = '0.6';
-                        setTimeout(() => {
-                            element.style.opacity = '1';
-                        }, 150);
+
+                    // 检查是否是辩论消息的时间戳（包含正反方标志）
+                    const timeTextElement = element.querySelector('.time-text');
+                    if (timeTextElement) {
+                        // 辩论消息：只更新时间文本部分
+                        if (timeTextElement.textContent !== newText) {
+                            console.log(`[时间更新] 更新辩论时间: "${timeTextElement.textContent}" -> "${newText}"`);
+                            timeTextElement.textContent = newText;
+                            updatedCount++;
+
+                            // 添加淡入效果，提示用户时间已更新
+                            element.style.opacity = '0.6';
+                            setTimeout(() => {
+                                element.style.opacity = '1';
+                            }, 150);
+                        }
+                    } else {
+                        // 普通消息：更新整个时间戳
+                        if (element.textContent !== newText) {
+                            console.log(`[时间更新] 更新时间: "${element.textContent}" -> "${newText}"`);
+                            element.textContent = newText;
+                            updatedCount++;
+
+                            // 添加淡入效果，提示用户时间已更新
+                            element.style.opacity = '0.6';
+                            setTimeout(() => {
+                                element.style.opacity = '1';
+                            }, 150);
+                        }
                     }
                 }
             });
@@ -3317,9 +4497,10 @@
             updateUserInfo();
             await loadRoles();
 
-            // 如果已登录，加载最近对话
+            // 如果已登录，加载最近对话和历史辩论
             if (isLoggedIn) {
                 await loadRecentChats();
+                await loadRecentDebates();
             }
 
             // 从URL锚点恢复页面状态
@@ -3540,6 +4721,14 @@
                 });
             }
 
+            // 侧边栏历史辩论列表滚动监听
+            const recentDebates = document.querySelector('.recent-debates');
+            if (recentDebates) {
+                recentDebates.addEventListener('scroll', function () {
+                    handleDebateListScroll();
+                });
+            }
+
             // 聊天消息区域滚动监听
             const chatMessages = document.getElementById('chatMessagesNew');
             if (chatMessages) {
@@ -3598,6 +4787,29 @@
             }
         }
 
+        // 处理历史辩论列表滚动
+        function handleDebateListScroll() {
+            const recentDebates = document.querySelector('.recent-debates');
+            const scrollTop = recentDebates.scrollTop;
+            const scrollHeight = recentDebates.scrollHeight;
+            const clientHeight = recentDebates.clientHeight;
+
+            console.log('历史辩论列表滚动检测:', {
+                scrollTop, scrollHeight, clientHeight,
+                distance: scrollHeight - scrollTop - clientHeight,
+                loading: lazyLoadState.debates.loading,
+                hasMore: lazyLoadState.debates.hasMore
+            });
+
+            if (scrollHeight - scrollTop - clientHeight < 50 && !lazyLoadState.debates.loading && lazyLoadState.debates.hasMore) {
+                console.log('触发历史辩论懒加载');
+                showLoadingIndicator('debates');
+                loadRecentDebates(true).then(() => {
+                    hideLoadingIndicator('debates');
+                });
+            }
+        }
+
         // 处理聊天消息滚动
         function handleChatMessagesScroll() {
             const chatMessagesElement = document.getElementById('chatMessagesNew');
@@ -3628,6 +4840,7 @@
             const indicators = {
                 'roles': 'rolesLoading',
                 'chats': 'chatsLoading',
+                'debates': 'debatesLoading',
                 'dialogs': 'dialogsLoading'
             };
 
@@ -3645,6 +4858,7 @@
             const indicators = {
                 'roles': 'rolesLoading',
                 'chats': 'chatsLoading',
+                'debates': 'debatesLoading',
                 'dialogs': 'dialogsLoading'
             };
 
@@ -3828,26 +5042,36 @@
         }
 
         // 更新URL锚点
-        function updateUrlHash() {
+        function updateUrlHash(customHash = null) {
             let hash = '';
-            switch (currentPage) {
-                case 'create-role':
-                    hash = '#create-role';
-                    break;
-                case 'chat':
-                    if (currentChatRoleId) {
-                        hash = `#chat/${currentChatRoleId}`;
-                    } else {
-                        hash = '#chat';
-                    }
-                    break;
-                case 'user-settings':
-                    hash = '#user-settings';
-                    break;
-                case 'home':
-                default:
-                    hash = '#home';
-                    break;
+
+            // 如果提供了自定义hash，直接使用
+            if (customHash) {
+                hash = `#${customHash}`;
+            } else {
+                // 否则根据currentPage生成hash
+                switch (currentPage) {
+                    case 'create-role':
+                        hash = '#create-role';
+                        break;
+                    case 'debate':
+                        hash = '#debate';
+                        break;
+                    case 'chat':
+                        if (currentChatRoleId) {
+                            hash = `#chat/${currentChatRoleId}`;
+                        } else {
+                            hash = '#chat';
+                        }
+                        break;
+                    case 'user-settings':
+                        hash = '#user-settings';
+                        break;
+                    case 'home':
+                    default:
+                        hash = '#home';
+                        break;
+                }
             }
             console.log('更新URL锚点:', hash);
             window.location.hash = hash;
@@ -3857,18 +5081,78 @@
         function restoreFromUrlHash() {
             const hash = window.location.hash.substring(1); // 移除 # 符号
             console.log('从URL锚点恢复页面状态:', hash);
+            console.log('restoreFromUrlHash调用堆栈:', new Error().stack);
 
             if (!hash) {
+                console.log('hash为空，调用backToHome');
                 backToHome();
                 return;
             }
 
-            const parts = hash.split('/');
+            // 分离页面名称和参数
+            const questionMarkIndex = hash.indexOf('?');
+            let pageWithPath = hash;
+            if (questionMarkIndex > 0) {
+                pageWithPath = hash.substring(0, questionMarkIndex);
+            }
+
+            const parts = pageWithPath.split('/');
             const page = parts[0];
+
+            console.log('解析结果:', { hash, pageWithPath, parts, page });
 
             switch (page) {
                 case 'create-role':
                     showCreateRolePage();
+                    break;
+                case 'debate':
+                    showDebate();
+                    break;
+                case 'debate-room':
+                    console.log('处理debate-room路由，hash:', hash);
+                    // 检查是否包含参数
+                    const questionMarkIndex = hash.indexOf('?');
+                    console.log('questionMarkIndex:', questionMarkIndex);
+                    if (questionMarkIndex > 0) {
+                        // 解析URL参数
+                        const paramString = hash.substring(questionMarkIndex + 1);
+                        console.log('paramString:', paramString);
+                        const params = new URLSearchParams(paramString);
+                        const userId = params.get('user_id');
+                        const role1Id = params.get('role1_id');
+                        const role2Id = params.get('role2_id');
+                        const debateId = params.get('debate_id');
+
+                        console.log('解析出的参数:', { userId, role1Id, role2Id, debateId });
+                        console.log('当前用户状态:', { isLoggedIn, currentUser });
+
+                        if (userId && role1Id && role2Id && isLoggedIn && currentUser?.id == parseInt(userId)) {
+                            // 根据参数恢复辩论房间状态
+                            console.log('开始恢复辩论房间，参数:', { userId, role1Id, role2Id, debateId });
+                            restoreDebateRoomFromParams(role1Id, role2Id, debateId);
+                        } else {
+                            // 参数不完整或用户不匹配，回到辩论设置页面
+                            console.log('恢复辩论房间失败，条件不满足:', {
+                                userId,
+                                role1Id,
+                                role2Id,
+                                isLoggedIn,
+                                currentUserId: currentUser?.id,
+                                userIdParsed: parseInt(userId),
+                                comparison: currentUser?.id == parseInt(userId)
+                            });
+                            showDebate();
+                        }
+                    } else {
+                        console.log('没有找到参数，使用默认逻辑');
+                        // 如果已有选定的辩论角色，显示辩论房间
+                        if (currentDebateRoles && currentDebateRoles.pro && currentDebateRoles.con) {
+                            showDebateRoom();
+                        } else {
+                            // 否则回到辩论设置页面
+                            showDebate();
+                        }
+                    }
                     break;
                 case 'chat':
                     const roleId = parts[1];
@@ -3918,6 +5202,944 @@
                 return;
             }
             showCreateRolePage();
+        }
+
+        // 显示辩论页面
+        function showDebate() {
+            currentPage = 'debate';
+            currentChatRoleId = null;
+
+            document.querySelector('.header').style.display = 'none';
+            document.querySelector('.content-area').style.display = 'none';
+            document.getElementById('createRolePage').classList.remove('active');
+            document.getElementById('chatPageNew').classList.remove('active');
+            document.getElementById('debatePage').classList.add('active');
+
+            // 重置辩论表单
+            resetDebateForm();
+
+            // 更新URL锚点
+            updateUrlHash('debate');
+        }
+
+        // 重置辩论表单
+        function resetDebateForm() {
+            document.getElementById('debateTopic').value = '';
+
+            // 重置角色选择
+            selectedRoles = { pro: null, con: null };
+            resetRoleSelection('pro');
+            resetRoleSelection('con');
+
+            // 清除错误信息
+            clearErrors(['debateTopicError']);
+        }        // 重置角色选择显示
+        function resetRoleSelection(side) {
+            const preview = document.getElementById(side + 'RolePreview');
+            const selector = document.getElementById(side + 'RoleSelector');
+
+            preview.innerHTML = `
+                <div class="role-avatar">➕</div>
+                <div class="role-info">
+                    <div class="role-name">点击选择${side === 'pro' ? '正方' : '反方'}角色</div>
+                    <div class="role-desc">${side === 'pro' ? '支持辩论主题的一方' : '反对辩论主题的一方'}</div>
+                </div>
+            `;
+
+            // 移除选中状态
+            preview.classList.remove('selected');
+            selector.classList.remove('selected');
+        }
+
+        // 角色选择相关变量
+        let currentRoleSelectSide = null;
+        let roleListOffset = 0;
+        let roleListHasMore = true;
+        let isLoadingRoles = false;
+        let roleSearchTimeout = null;
+        let selectedRoles = { pro: null, con: null };
+
+        // 显示角色选择弹窗
+        function showRoleSelection(side) {
+            currentRoleSelectSide = side;
+
+            // 更新弹窗标题
+            document.getElementById('roleSelectSideText').textContent =
+                side === 'pro' ? '选择正方角色' : '选择反方角色';
+
+            // 显示弹窗
+            document.getElementById('roleSelectModal').classList.add('active');
+
+            // 清空搜索框
+            document.getElementById('roleSearchInput').value = '';
+
+            // 加载初始角色列表
+            loadInitialRoles();
+        }
+
+        // 关闭角色选择弹窗
+        function closeRoleSelectModal() {
+            document.getElementById('roleSelectModal').classList.remove('active');
+            currentRoleSelectSide = null;
+        }
+
+        // 加载初始角色列表
+        async function loadInitialRoles() {
+            roleListOffset = 0;
+            roleListHasMore = true;
+            document.getElementById('roleList').innerHTML = '';
+            await loadMoreRoles();
+        }
+
+        // 加载更多角色
+        async function loadMoreRoles() {
+            if (isLoadingRoles || !roleListHasMore) return;
+
+            isLoadingRoles = true;
+            showRoleListLoading();
+
+            try {
+                const response = await fetch(`/api/role/list?offset=${roleListOffset}&limit=15`);
+                if (response.ok) {
+                    const data = await response.json();
+                    appendRolesToList(data.items);
+                    roleListOffset += data.items.length;
+                    roleListHasMore = data.has_more;
+                } else {
+                    console.error('加载角色列表失败:', response.status);
+                }
+            } catch (error) {
+                console.error('加载角色列表错误:', error);
+            } finally {
+                isLoadingRoles = false;
+                hideRoleListLoading();
+            }
+        }
+
+        // 搜索角色
+        async function searchRoles() {
+            const keyword = document.getElementById('roleSearchInput').value.trim();
+
+            // 清除之前的搜索定时器
+            if (roleSearchTimeout) {
+                clearTimeout(roleSearchTimeout);
+            }
+
+            // 设置新的搜索定时器（防抖）
+            roleSearchTimeout = setTimeout(async () => {
+                if (keyword === '') {
+                    // 如果搜索框为空，加载初始列表
+                    await loadInitialRoles();
+                } else {
+                    // 执行搜索
+                    await performSearch(keyword);
+                }
+            }, 500);
+        }
+
+        // 执行搜索
+        async function performSearch(keyword) {
+            showRoleListLoading();
+
+            try {
+                const response = await fetch(`/api/role/search?q=${encodeURIComponent(keyword)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('roleList').innerHTML = '';
+                    appendRolesToList(data);
+                    roleListHasMore = false; // 搜索结果不支持分页
+
+                    if (data.length === 0) {
+                        showRoleListEmpty();
+                    }
+                } else {
+                    console.error('搜索角色失败:', response.status);
+                }
+            } catch (error) {
+                console.error('搜索角色错误:', error);
+            } finally {
+                hideRoleListLoading();
+            }
+        }
+
+        // 开始辩论
+        async function startDebate() {
+            // 验证输入
+            const topic = document.getElementById('debateTopic').value.trim();
+            if (!topic) {
+                showError('debateTopicError', '请输入辩论主题');
+                return;
+            }
+
+            if (!selectedRoles.pro || !selectedRoles.con) {
+                alert('请选择正方和反方角色');
+                return;
+            }
+
+            if (!isLoggedIn) {
+                showAuthModal();
+                return;
+            }
+
+            // 获取用户ID
+            const userId = currentUser?.id;
+            console.log('当前用户信息:', currentUser);
+            console.log('用户ID:', userId);
+            if (!userId) {
+                console.error('用户信息错误:', currentUser);
+                alert('用户信息错误，请重新登录');
+                return;
+            }
+
+            const startBtn = document.getElementById('startDebateBtn');
+            startBtn.disabled = true;
+            startBtn.textContent = '创建辩论中...';
+
+            try {
+                const response = await fetch('/api/debate/new', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: parseInt(userId),
+                        role1_id: selectedRoles.pro.role_id,
+                        role2_id: selectedRoles.con.role_id,
+                        topic: topic
+                    })
+                });
+
+                if (response.ok) {
+                    console.log('辩论创建成功');
+                    // 进入辩论界面
+                    showDebateRoom(topic, selectedRoles.pro, selectedRoles.con);
+
+                    // 更新历史辩论列表
+                    updateRecentDebatesList();
+                } else {
+                    console.error('创建辩论失败:', response.status);
+                    alert('创建辩论失败，请稍后重试');
+                }
+            } catch (error) {
+                console.error('创建辩论错误:', error);
+                alert('创建辩论失败：' + error.message);
+            } finally {
+                startBtn.disabled = false;
+                startBtn.textContent = '开始辩论';
+            }
+        }
+
+        // 显示辩论房间
+        function showDebateRoom(topic, proRole, conRole) {
+            // 如果没有传入参数，尝试使用当前存储的信息
+            if (!topic && !proRole && !conRole) {
+                if (!currentDebateRoles || !currentDebateRoles.pro || !currentDebateRoles.con || !currentDebateTopic) {
+                    showAlert('辩论信息不完整，返回辩论设置页面');
+                    showDebate();
+                    return;
+                }
+                topic = currentDebateTopic;
+                proRole = currentDebateRoles.pro;
+                conRole = currentDebateRoles.con;
+            }
+
+            currentPage = 'debate-room';
+            currentChatRoleId = null;
+
+            // 隐藏其他页面
+            document.querySelector('.header').style.display = 'none';
+            document.querySelector('.content-area').style.display = 'none';
+            document.getElementById('createRolePage').classList.remove('active');
+            document.getElementById('chatPageNew').classList.remove('active');
+            document.getElementById('debatePage').classList.remove('active');
+            document.getElementById('debateRoomPage').classList.add('active');
+
+            // 设置辩论信息
+            document.getElementById('debateRoomTitle').textContent = topic;
+
+            // 存储辩论角色信息
+            currentDebateRoles = { pro: proRole, con: conRole };
+            currentDebateTopic = topic;
+
+            // 重置辩论状态
+            debateDialogs = [];
+            debateOffset = 0;
+            debateHasMore = true;
+            debateSessionActive = false;
+
+            // 清空消息区域
+            document.getElementById('debateMessages').innerHTML = `
+                <div class="debate-empty" id="debateEmpty">
+                    <div class="debate-empty-icon">⚔️</div>
+                    <div class="debate-empty-text">辩论即将开始</div>
+                    <div class="debate-empty-hint">点击"开始辩论"按钮开始这场精彩的辩论</div>
+                </div>
+            `;
+
+            // 重置按钮状态
+            document.getElementById('debateStartBtn').disabled = false;
+            document.getElementById('debateEndBtn').disabled = true;
+
+            // 更新URL锚点 - 如果当前URL已经包含参数，则保留参数
+            const currentHash = window.location.hash.substring(1);
+            if (currentHash.startsWith('debate-room?')) {
+                // 如果当前URL已经包含参数，保持不变
+                console.log('保留当前URL参数:', currentHash);
+            } else {
+                // 否则设置基础的debate-room锚点
+                updateUrlHash('debate-room');
+            }
+
+            // 立即加载历史对话
+            setTimeout(async () => {
+                await loadDebateHistory();
+            }, 100);
+        }
+
+        // 辩论会话控制
+        let currentDebateRoles = null;
+        let currentDebateTopic = null;
+        let currentDebateId = null; // 当前辩论ID
+        let debateSessionActive = false;
+        let debateAudio = null; // 当前播放的音频
+        let isLoadingDebateHistory = false;
+        let debateDialogs = []; // 存储辩论对话记录
+        let debateOffset = 0;
+        let debateHasMore = true;
+
+        // 根据URL参数恢复辩论房间状态
+        async function restoreDebateRoomFromParams(role1Id, role2Id, debateId) {
+            console.log('开始恢复辩论房间状态:', { role1Id, role2Id, debateId, currentUser });
+
+            try {
+                if (!currentUser || !currentUser.id) {
+                    console.error('用户未登录，无法恢复辩论房间');
+                    return;
+                }
+
+                // 获取角色详情
+                console.log('开始获取角色详情...');
+                const [role1Response, role2Response] = await Promise.all([
+                    fetch(`/api/role/details?role_id=${role1Id}`),
+                    fetch(`/api/role/details?role_id=${role2Id}`)
+                ]);
+
+                console.log('角色详情响应状态:', { role1: role1Response.status, role2: role2Response.status });
+
+                if (!role1Response.ok || !role2Response.ok) {
+                    console.error('加载角色详情失败:', {
+                        role1Status: role1Response.status,
+                        role2Status: role2Response.status
+                    });
+                    return;
+                }
+
+                const [role1Data, role2Data] = await Promise.all([
+                    role1Response.json(),
+                    role2Response.json()
+                ]);
+
+                console.log('获取到角色数据:', { role1Data, role2Data });
+
+                // 构建角色对象
+                const role1 = {
+                    role_id: role1Data.role_id,
+                    id: role1Data.role_id,
+                    name: role1Data.name,
+                    description: role1Data.description,
+                    traits: role1Data.traits,
+                    image_url: role1Data.image_url
+                };
+
+                const role2 = {
+                    role_id: role2Data.role_id,
+                    id: role2Data.role_id,
+                    name: role2Data.name,
+                    description: role2Data.description,
+                    traits: role2Data.traits,
+                    image_url: role2Data.image_url
+                };
+
+                console.log('构建的角色对象:', { role1, role2 });
+
+                // 获取辩论信息
+                console.log('开始获取辩论信息...');
+                const debatePayload = {
+                    user_id: parseInt(currentUser.id),
+                    role1_id: parseInt(role1Id),
+                    role2_id: parseInt(role2Id),
+                    offset: 0,
+                    limit: 10
+                };
+                console.log('辩论API请求参数:', debatePayload);
+
+                const debateResponse = await fetch('/api/debate/dialogs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(debatePayload)
+                });
+
+                console.log('辩论信息响应状态:', debateResponse.status);
+
+                if (debateResponse.ok) {
+                    const debateData = await debateResponse.json();
+                    console.log('获取到辩论数据:', debateData);
+
+                    // 设置辩论信息并显示房间
+                    currentDebateId = debateData.debate_id || debateId;
+                    console.log('准备显示辩论房间:', { topic: debateData.topic, role1: role1.name, role2: role2.name });
+                    showDebateRoom(debateData.topic, role1, role2);
+                } else {
+                    const errorText = await debateResponse.text();
+                    console.error('加载辩论信息失败:', debateResponse.status, errorText);
+                }
+            } catch (error) {
+                console.error('恢复辩论房间状态失败:', error);
+            }
+        }
+
+        // 加载辩论历史对话
+        async function loadDebateHistory() {
+            console.log('loadDebateHistory调用，检查状态:', {
+                currentDebateRoles,
+                isLoadingDebateHistory,
+                debateHasMore
+            });
+
+            if (!currentDebateRoles || isLoadingDebateHistory || !debateHasMore) {
+                console.log('loadDebateHistory早期退出:', {
+                    hasRoles: !!currentDebateRoles,
+                    isLoading: isLoadingDebateHistory,
+                    hasMore: debateHasMore
+                });
+                return;
+            }
+
+            isLoadingDebateHistory = true;
+
+            try {
+                const userId = currentUser?.id;
+                if (!userId) {
+                    console.error('用户未登录');
+                    return;
+                }
+
+                console.log('准备发送API请求，角色信息:', {
+                    pro: currentDebateRoles.pro,
+                    con: currentDebateRoles.con,
+                    proRoleId: currentDebateRoles.pro?.role_id,
+                    conRoleId: currentDebateRoles.con?.role_id
+                });
+
+                const requestPayload = {
+                    user_id: parseInt(userId),
+                    role1_id: currentDebateRoles.pro.role_id,
+                    role2_id: currentDebateRoles.con.role_id,
+                    offset: debateOffset,
+                    limit: 20
+                };
+
+                console.log('loadDebateHistory API请求参数:', requestPayload);
+
+                const response = await fetch('/api/debate/dialogs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestPayload)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    if (debateOffset === 0) {
+                        // 首次加载，替换所有对话
+                        debateDialogs = data.dialogs || [];
+                    } else {
+                        // 追加更多对话（历史对话在前面）
+                        debateDialogs = [...(data.dialogs || []), ...debateDialogs];
+                    }
+
+                    debateOffset += (data.dialogs || []).length;
+                    debateHasMore = data.has_more;
+
+                    // 渲染对话
+                    renderDebateDialogs();
+                } else {
+                    console.error('加载辩论历史失败:', response.status);
+                }
+            } catch (error) {
+                console.error('加载辩论历史错误:', error);
+            } finally {
+                isLoadingDebateHistory = false;
+            }
+        }
+
+        // 渲染辩论对话
+        function renderDebateDialogs() {
+            const messagesContainer = document.getElementById('debateMessages');
+            if (!messagesContainer || !currentDebateRoles) {
+                return;
+            }
+
+            // 清空现有内容
+            messagesContainer.innerHTML = '';
+
+            // 如果没有对话，显示空状态
+            if (debateDialogs.length === 0) {
+                messagesContainer.innerHTML = `
+                    <div class="debate-empty" id="debateEmpty">
+                        <div class="debate-empty-icon">⚔️</div>
+                        <div class="debate-empty-text">辩论即将开始</div>
+                        <div class="debate-empty-hint">点击"开始辩论"按钮开始这场精彩的辩论</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // 渲染所有对话
+            debateDialogs.forEach(dialog => {
+                const isProRole = dialog.role_id === currentDebateRoles.pro.role_id;
+                const role = isProRole ? currentDebateRoles.pro : currentDebateRoles.con;
+                const messageElement = createDebateMessageElement(dialog, role, isProRole);
+                messagesContainer.appendChild(messageElement);
+            });
+
+            // 滚动到底部
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // 创建辩论消息元素
+        function createDebateMessageElement(dialog, role, isProRole) {
+            const messageDiv = document.createElement('div');
+
+            // 设置消息类名，匹配聊天消息的结构
+            const hasVoiceClass = dialog.voice ? ' has-voice' : '';
+            messageDiv.className = `message ${isProRole ? 'pro' : 'con'}${hasVoiceClass}`;
+
+            // 头像处理 - 使用角色真实头像
+            let avatarHtml;
+            if (role.avatar_url) {
+                if (isEmoji(role.avatar_url)) {
+                    avatarHtml = role.avatar_url;
+                } else {
+                    avatarHtml = `<img src="${role.avatar_url}" alt="${role.name}">`;
+                }
+            } else {
+                // 如果没有头像，使用默认emoji
+                avatarHtml = '🎭';
+            }
+
+            // 消息内容
+            let messageContent = `<div class="message-text">${escapeHtml(dialog.text)}</div>`;
+
+            // 添加语音内容
+            if (dialog.voice) {
+                messageContent += `
+                    <div class="message-voice">
+                        <audio controls preload="metadata">
+                            <source src="${dialog.voice}" type="audio/mpeg">
+                            您的浏览器不支持音频播放。
+                        </audio>
+                    </div>
+                `;
+            }
+
+            // 添加时间戳和正反方标志
+            const timestampText = getTimeAgo(dialog.timestamp);
+            if (timestampText) {
+                const sideLabel = isProRole ? '正方' : '反方';
+                messageContent += `
+                    <div class="message-timestamp" data-timestamp="${dialog.timestamp}">
+                        <span class="debate-side-label ${isProRole ? 'pro' : 'con'}">${sideLabel}</span>
+                        <span class="time-text">${timestampText}</span>
+                    </div>
+                `;
+            }
+
+            messageDiv.innerHTML = `
+                <div class="message-avatar ${isProRole ? 'pro' : 'con'}">${avatarHtml}</div>
+                <div class="message-content${hasVoiceClass}">${messageContent}</div>
+            `;
+
+            return messageDiv;
+        }
+
+        // 播放辩论语音（自动播放）
+        async function playDebateVoiceAuto(voiceUrl) {
+            return new Promise((resolve) => {
+                if (debateAudio) {
+                    debateAudio.pause();
+                    debateAudio = null;
+                }
+
+                // 尝试先从页面中找到对应的audio元素
+                const audioElements = document.querySelectorAll('#debateMessages audio');
+                let targetAudio = null;
+
+                // 查找匹配URL的音频元素
+                for (let audio of audioElements) {
+                    if (audio.src === voiceUrl || audio.querySelector('source')?.src === voiceUrl) {
+                        targetAudio = audio;
+                        break;
+                    }
+                }
+
+                if (targetAudio) {
+                    // 使用页面中的audio元素
+                    debateAudio = targetAudio;
+
+                    const endHandler = () => {
+                        targetAudio.removeEventListener('ended', endHandler);
+                        targetAudio.removeEventListener('error', errorHandler);
+                        debateAudio = null;
+                        resolve();
+                    };
+
+                    const errorHandler = (e) => {
+                        console.error('语音自动播放错误:', e);
+                        targetAudio.removeEventListener('ended', endHandler);
+                        targetAudio.removeEventListener('error', errorHandler);
+                        debateAudio = null;
+                        resolve();
+                    };
+
+                    targetAudio.addEventListener('ended', endHandler);
+                    targetAudio.addEventListener('error', errorHandler);
+
+                    targetAudio.play().catch(error => {
+                        console.error('语音自动播放失败:', error);
+                        targetAudio.removeEventListener('ended', endHandler);
+                        targetAudio.removeEventListener('error', errorHandler);
+                        debateAudio = null;
+                        resolve();
+                    });
+                } else {
+                    // 创建新的Audio对象
+                    debateAudio = new Audio(voiceUrl);
+
+                    debateAudio.addEventListener('ended', () => {
+                        debateAudio = null;
+                        resolve();
+                    });
+
+                    debateAudio.addEventListener('error', (e) => {
+                        console.error('语音自动播放错误:', e);
+                        debateAudio = null;
+                        resolve();
+                    });
+
+                    debateAudio.play().catch(error => {
+                        console.error('语音自动播放失败:', error);
+                        debateAudio = null;
+                        resolve();
+                    });
+                }
+            });
+        }
+
+        // 开始辩论会话
+        async function startDebateSession() {
+            if (!currentDebateRoles || !currentUser?.id) {
+                console.error('缺少必要的辩论信息');
+                return;
+            }
+
+            console.log('开始辩论会话');
+
+            // 更新按钮状态
+            document.getElementById('debateStartBtn').disabled = true;
+            document.getElementById('debateEndBtn').disabled = false;
+
+            // 隐藏空状态
+            const emptyElement = document.getElementById('debateEmpty');
+            if (emptyElement) {
+                emptyElement.style.display = 'none';
+            }
+
+            debateSessionActive = true;
+
+            // 加载历史对话
+            await loadDebateHistory();
+
+            // 开始辩论循环
+            startDebateLoop();
+        }
+
+        // 结束辩论会话
+        function endDebateSession() {
+            console.log('结束辩论会话');
+
+            // 停止当前播放的音频
+            if (debateAudio) {
+                debateAudio.pause();
+                debateAudio = null;
+            }
+
+            // 更新按钮状态
+            document.getElementById('debateStartBtn').disabled = false;
+            document.getElementById('debateEndBtn').disabled = true;
+
+            debateSessionActive = false;
+        }
+
+        // 辩论循环控制
+        async function startDebateLoop() {
+            if (!debateSessionActive) {
+                return;
+            }
+
+            try {
+                const userId = currentUser?.id;
+                if (!userId) {
+                    console.error('用户未登录');
+                    return;
+                }
+
+                const response = await fetch('/api/debate/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: parseInt(userId),
+                        role1_id: currentDebateRoles.pro.role_id,
+                        role2_id: currentDebateRoles.con.role_id,
+                    })
+                });
+
+                if (!response.ok) {
+                    console.error('辩论API调用失败:', response.status);
+                    return;
+                }
+
+                const data = await response.json();
+
+                // 创建新的对话消息
+                const isProRole = data.current_speaker_id === currentDebateRoles.pro.role_id;
+                const role = isProRole ? currentDebateRoles.pro : currentDebateRoles.con;
+
+                const newDialog = {
+                    id: Date.now(), // 临时ID
+                    role_id: data.current_speaker_id,
+                    timestamp: data.timestamp,
+                    text: data.response,
+                    voice: data.voice_url
+                };
+
+                // 添加到对话列表
+                debateDialogs.push(newDialog);
+
+                // 添加新消息到界面
+                addDebateMessage(newDialog, role, isProRole);
+
+                // 等待DOM更新后再自动播放语音
+                if (data.voice_url) {
+                    // 稍微延迟确保DOM已更新
+                    setTimeout(async () => {
+                        await playDebateVoiceAuto(data.voice_url);
+
+                        // 语音播放完成后，如果辩论还在进行，继续下一轮
+                        if (debateSessionActive) {
+                            setTimeout(() => {
+                                startDebateLoop();
+                            }, 1000);
+                        }
+                    }, 100);
+                } else {
+                    // 如果没有语音，直接继续下一轮
+                    if (debateSessionActive) {
+                        setTimeout(() => {
+                            startDebateLoop();
+                        }, 1500);
+                    }
+                }
+
+            } catch (error) {
+                console.error('辩论循环错误:', error);
+            }
+        }
+
+        // 添加辩论消息到界面
+        function addDebateMessage(dialog, role, isProRole) {
+            const messagesContainer = document.getElementById('debateMessages');
+            if (!messagesContainer) {
+                return;
+            }
+
+            // 如果是第一条消息，清除空状态
+            const emptyElement = document.getElementById('debateEmpty');
+            if (emptyElement && emptyElement.style.display !== 'none') {
+                emptyElement.style.display = 'none';
+            }
+
+            const messageElement = createDebateMessageElement(dialog, role, isProRole);
+            messagesContainer.appendChild(messageElement);
+
+            // 滚动到底部
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // 将角色添加到列表中
+        function appendRolesToList(roles) {
+            const roleList = document.getElementById('roleList');
+
+            roles.forEach(role => {
+                const roleItem = createRoleItem(role);
+                roleList.appendChild(roleItem);
+            });
+
+            hideRoleListEmpty();
+        }
+
+        // 创建角色列表项
+        function createRoleItem(role) {
+            const roleItem = document.createElement('div');
+            roleItem.className = 'role-item';
+            roleItem.onclick = () => selectDebateRole(role);
+
+            // 创建头像
+            const avatar = document.createElement('div');
+            avatar.className = 'role-item-avatar';
+
+            // 判断是否为emoji字符（简单判断：如果是单个字符且不是字母数字，认为是emoji）
+            const isEmoji = (str) => {
+                if (!str || str.trim().length === 0) return false;
+                const trimmed = str.trim();
+                // 如果以emoji:开头，则去掉前缀
+                if (trimmed.startsWith('emoji:')) {
+                    return trimmed.length > 6; // emoji: + at least 1 char
+                }
+                // 检查是否为emoji字符（基本检查）
+                return /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u.test(trimmed)
+                    || trimmed.length <= 4; // 简单判断：短字符串可能是emoji
+            };
+
+            if (role.image_url && role.image_url.trim()) {
+                const imageUrl = role.image_url.trim();
+
+                if (isEmoji(imageUrl)) {
+                    // 处理emoji头像
+                    avatar.textContent = imageUrl.startsWith('emoji:') ? imageUrl.replace('emoji:', '') : imageUrl;
+                } else {
+                    // 处理图片URL
+                    const img = document.createElement('img');
+                    img.src = imageUrl;
+                    img.alt = role.name;
+                    img.onerror = () => {
+                        // 如果图片加载失败，显示默认emoji
+                        img.remove();
+                        avatar.textContent = '🎭';
+                    };
+                    avatar.appendChild(img);
+                }
+            } else {
+                avatar.textContent = '🎭';
+            }
+
+            // 创建信息区域
+            const info = document.createElement('div');
+            info.className = 'role-item-info';
+
+            const name = document.createElement('div');
+            name.className = 'role-item-name';
+            name.textContent = role.name;
+
+            const desc = document.createElement('div');
+            desc.className = 'role-item-desc';
+            desc.textContent = role.description || role.traits || '暂无描述';
+
+            info.appendChild(name);
+            info.appendChild(desc);
+
+            roleItem.appendChild(avatar);
+            roleItem.appendChild(info);
+
+            return roleItem;
+        }
+
+        // 选择辩论角色
+        function selectDebateRole(role) {
+            if (!currentRoleSelectSide) return;
+
+            // 保存选择的角色
+            selectedRoles[currentRoleSelectSide] = role;
+
+            // 更新界面显示
+            updateRolePreview(currentRoleSelectSide, role);
+
+            // 关闭弹窗
+            closeRoleSelectModal();
+        }
+
+        // 更新角色预览
+        function updateRolePreview(side, role) {
+            const preview = document.getElementById(side + 'RolePreview');
+            const selector = document.getElementById(side + 'RoleSelector');
+
+            // 判断是否为emoji字符
+            const isEmoji = (str) => {
+                if (!str || str.trim().length === 0) return false;
+                const trimmed = str.trim();
+                // 如果以emoji:开头，则去掉前缀
+                if (trimmed.startsWith('emoji:')) {
+                    return trimmed.length > 6; // emoji: + at least 1 char
+                }
+                // 检查是否为emoji字符（基本检查）
+                return /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u.test(trimmed)
+                    || trimmed.length <= 4; // 简单判断：短字符串可能是emoji
+            };
+
+            // 创建头像HTML
+            let avatarHtml = '';
+            if (role.image_url && role.image_url.trim()) {
+                const imageUrl = role.image_url.trim();
+
+                if (isEmoji(imageUrl)) {
+                    // 处理emoji头像
+                    avatarHtml = imageUrl.startsWith('emoji:') ? imageUrl.replace('emoji:', '') : imageUrl;
+                } else {
+                    // 处理图片URL
+                    avatarHtml = `<img src="${imageUrl}" alt="${role.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                 <div class="role-avatar" style="display: none;">🎭</div>`;
+                }
+            } else {
+                avatarHtml = '🎭';
+            }
+
+            preview.innerHTML = `
+                <div class="role-avatar">${avatarHtml}</div>
+                <div class="role-info">
+                    <div class="role-name">${role.name}</div>
+                    <div class="role-desc">${role.description || role.traits || '暂无描述'}</div>
+                </div>
+            `;
+
+            // 添加选中状态的类
+            preview.classList.add('selected');
+            selector.classList.add('selected');
+        }        // 显示角色列表加载状态
+        function showRoleListLoading() {
+            document.getElementById('roleListLoading').style.display = 'block';
+            document.getElementById('roleListEmpty').style.display = 'none';
+        }
+
+        // 隐藏角色列表加载状态
+        function hideRoleListLoading() {
+            document.getElementById('roleListLoading').style.display = 'none';
+        }
+
+        // 显示空列表提示
+        function showRoleListEmpty() {
+            document.getElementById('roleListEmpty').style.display = 'block';
+            document.getElementById('roleListLoading').style.display = 'none';
+        }
+
+        // 隐藏空列表提示
+        function hideRoleListEmpty() {
+            document.getElementById('roleListEmpty').style.display = 'none';
         }
 
         // 显示创建角色页面
@@ -4736,8 +6958,9 @@
                     await loadRoles();
                     renderRoles(roles);
 
-                    // 加载最近对话
+                    // 加载最近对话和历史辩论
                     await loadRecentChats();
+                    await loadRecentDebates();
 
                     // 执行登录后的待处理操作
                     executePendingAction();
@@ -4978,6 +7201,27 @@
                     if (document.getElementById('authModal').classList.contains('active')) {
                         closeAuthModal();
                     }
+                    if (document.getElementById('roleSelectModal').classList.contains('active')) {
+                        closeRoleSelectModal();
+                    }
+                }
+            });
+
+            // 点击角色选择弹窗外部关闭
+            document.getElementById('roleSelectModal').addEventListener('click', function (e) {
+                if (e.target === this) {
+                    closeRoleSelectModal();
+                }
+            });
+
+            // 角色列表滚动监听（懒加载）
+            document.getElementById('roleListContainer').addEventListener('scroll', function (e) {
+                const container = e.target;
+                const { scrollTop, scrollHeight, clientHeight } = container;
+
+                // 当滚动到接近底部时加载更多
+                if (scrollHeight - scrollTop <= clientHeight + 50) {
+                    loadMoreRoles();
                 }
             });
         });
@@ -5121,6 +7365,178 @@
                 await loadRecentChats(false); // false表示不是追加，而是重新加载
             } catch (error) {
                 console.error('更新最近对话列表失败:', error);
+            }
+        }
+
+        // 获取用户的历史辩论列表（懒加载版本）
+        async function loadRecentDebates(append = false) {
+            if (lazyLoadState.debates.loading || !currentUser?.id) return;
+
+            try {
+                lazyLoadState.debates.loading = true;
+
+                if (!append) {
+                    lazyLoadState.debates.offset = 0;
+                    lazyLoadState.debates.hasMore = true;
+                }
+
+                if (!lazyLoadState.debates.hasMore) {
+                    lazyLoadState.debates.loading = false;
+                    return;
+                }
+
+                const response = await fetch('/api/debate/list', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: parseInt(currentUser.id),
+                        offset: lazyLoadState.debates.offset,
+                        limit: lazyLoadState.debates.limit
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('历史辩论数据:', data);
+
+                    if (data.debates && data.debates.length > 0) {
+                        lazyLoadState.debates.total = data.total;
+                        lazyLoadState.debates.hasMore = data.has_more;
+                        lazyLoadState.debates.offset += lazyLoadState.debates.limit;
+
+                        await renderRecentDebates(data.debates, append);
+
+                        // 如果没有更多数据，标记完成
+                        if (!data.has_more) {
+                            lazyLoadState.debates.hasMore = false;
+                        }
+                    } else {
+                        console.log('没有更多历史辩论数据');
+                        lazyLoadState.debates.hasMore = false;
+                    }
+                } else {
+                    console.error('加载历史辩论失败:', response.status);
+                    lazyLoadState.debates.hasMore = false;
+                }
+            } catch (error) {
+                console.error('加载历史辩论错误:', error);
+                lazyLoadState.debates.hasMore = false;
+            } finally {
+                lazyLoadState.debates.loading = false;
+            }
+        }
+
+        async function renderRecentDebates(debates, append = false) {
+            const debateList = document.getElementById('debateList');
+            if (!debateList) return;
+
+            if (!append) {
+                debateList.innerHTML = '';
+            }
+
+            // 如果有辩论记录，隐藏空状态提示
+            const noDebates = debateList.querySelector('.no-debates');
+            if (noDebates && debates.length > 0) {
+                noDebates.remove();
+            }
+
+            // 需要获取角色信息来显示头像和名称
+            const roleIds = [...new Set(debates.flatMap(debate => [debate.role1_id, debate.role2_id]))];
+            const rolesMap = new Map();
+
+            // 批量获取角色信息
+            for (const roleId of roleIds) {
+                try {
+                    const response = await fetch(`/api/role/details?role_id=${roleId}`);
+                    if (response.ok) {
+                        const roleData = await response.json();
+                        // 需要构造完整的角色对象，包含id字段
+                        rolesMap.set(roleId, {
+                            id: roleId,
+                            name: roleData.name,
+                            description: roleData.description,
+                            traits: roleData.traits,
+                            image_url: roleData.image_url,
+                            avatar_url: roleData.image_url // 兼容性字段
+                        });
+                    }
+                } catch (error) {
+                    console.error('获取角色信息失败:', error);
+                }
+            }
+
+            debates.forEach(debate => {
+                const debateItem = createDebateItem(debate, rolesMap);
+                debateList.appendChild(debateItem);
+            });
+
+            // 如果没有辩论记录并且不是追加模式，显示空状态
+            if (debates.length === 0 && !append) {
+                debateList.innerHTML = '<div class="no-debates">暂无辩论记录</div>';
+            }
+        }
+
+        function createDebateItem(debate, rolesMap) {
+            const debateItem = document.createElement('div');
+            debateItem.className = 'debate-item';
+
+            const role1 = rolesMap.get(debate.role1_id);
+            const role2 = rolesMap.get(debate.role2_id);
+
+            // 头像处理
+            const getAvatarHtml = (role, side) => {
+                if (!role) return `<div class="debate-role-avatar ${side}">🎭</div>`;
+
+                if (role.image_url) {
+                    if (isEmoji(role.image_url)) {
+                        return `<div class="debate-role-avatar ${side}">${role.image_url}</div>`;
+                    } else {
+                        return `<div class="debate-role-avatar ${side}"><img src="${role.image_url}" alt="${role.name}"></div>`;
+                    }
+                } else {
+                    return `<div class="debate-role-avatar ${side}">🎭</div>`;
+                }
+            };
+
+            const timeAgo = getTimeAgo(debate.last_dialog_timestamp);
+
+            debateItem.innerHTML = `
+                <div class="debate-item-header">
+                    <div class="debate-roles">
+                        ${getAvatarHtml(role1, 'pro')}
+                        <span class="debate-vs">VS</span>
+                        ${getAvatarHtml(role2, 'con')}
+                    </div>
+                    <div class="debate-time">${timeAgo}</div>
+                </div>
+                <div class="debate-topic">${escapeHtml(debate.topic)}</div>
+            `;
+
+            // 点击事件 - 进入辩论房间
+            debateItem.onclick = () => {
+                if (role1 && role2) {
+                    // 设置当前辩论ID，用于加载历史记录
+                    currentDebateId = debate.id;
+                    // 调用showDebateRoom，role1是正方，role2是反方
+                    showDebateRoom(debate.topic, role1, role2);
+                    // 更新URL，包含必要的参数用于加载历史记录
+                    window.location.hash = `#debate-room?user_id=${currentUser.id}&role1_id=${debate.role1_id}&role2_id=${debate.role2_id}&debate_id=${debate.id}`;
+                }
+            };
+
+            return debateItem;
+        }
+
+        async function updateRecentDebatesList() {
+            console.log('更新历史辩论列表');
+
+            // 重新加载历史辩论列表
+            try {
+                await loadRecentDebates(false);
+            } catch (error) {
+                console.error('更新历史辩论列表失败:', error);
             }
         }
 
@@ -5786,15 +8202,20 @@
             }
         }
 
-        // 修改backToHome函数，支持从聊天页面和用户设置页面返回
+        // 修改backToHome函数，支持从聊天页面、创建角色页面、辩论页面和用户设置页面返回
         function backToHome() {
+            console.log('backToHome被调用，调用堆栈:', new Error().stack);
             currentPage = 'home';
             currentChatRoleId = null;
+            currentDebateRoles = null;
+            debateSessionActive = false;
 
             document.querySelector('.header').style.display = 'flex';
             document.querySelector('.content-area').style.display = 'block';
             document.getElementById('createRolePage').classList.remove('active');
             document.getElementById('chatPageNew').classList.remove('active');
+            document.getElementById('debatePage').classList.remove('active');
+            document.getElementById('debateRoomPage').classList.remove('active');
 
             // 隐藏用户设置页面（如果存在）
             const settingsPage = document.getElementById('user-settings-page');

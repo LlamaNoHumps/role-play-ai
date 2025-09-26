@@ -13,6 +13,7 @@ pub async fn handler(
     let role = database.get_role(role_id).await?;
 
     Ok(Json(ResponseData {
+        role_id: role.id,
         name: role.name,
         description: role.description,
         traits: role.traits,
@@ -27,6 +28,7 @@ pub struct RequestData {
 
 #[derive(Serialize)]
 pub struct ResponseData {
+    pub role_id: i32,
     pub name: String,
     pub description: String,
     pub traits: String,

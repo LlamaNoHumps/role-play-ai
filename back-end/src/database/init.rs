@@ -6,7 +6,9 @@
 */
 
 use super::Database;
-use crate::database::models::{conversation_template, conversations, roles, users};
+use crate::database::models::{
+    conversation_template, conversations, debate_template, debates, roles, users,
+};
 use anyhow::Result;
 use sea_orm::{ConnectionTrait, DatabaseConnection, EntityName, EntityTrait, Schema, Statement};
 
@@ -31,6 +33,9 @@ impl Database {
             .await?;
         self.create_table_if_not_exists(conversations::Entity)
             .await?;
+        self.create_table_if_not_exists(debate_template::Entity)
+            .await?;
+        self.create_table_if_not_exists(debates::Entity).await?;
 
         Ok(())
     }
