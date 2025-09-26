@@ -1,8 +1,9 @@
 use crate::{
-    agents::AI,
+    agents::{
+        AI, Recorder,
+        reciter::{Reciter, remove_brackets},
+    },
     database::Database,
-    reciter::{Reciter, remove_brackets},
-    recorder::Recorder,
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};

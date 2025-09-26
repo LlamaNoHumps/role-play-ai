@@ -1,11 +1,13 @@
-use std::collections::HashMap;
-
+use super::RetryConfig;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, time::Duration};
+use tokio::time::sleep;
 
 #[derive(Clone)]
 pub struct Recorder {
     http_client: reqwest::Client,
+    retry_config: RetryConfig,
 }
 
 impl Recorder {
@@ -28,7 +30,10 @@ impl Recorder {
             .build()
             .unwrap();
 
-        Self { http_client }
+        Self {
+            http_client,
+            retry_config: RetryConfig::default(),
+        }
     }
 
     pub async fn asr(&self, voice_url: &str) -> Result<String> {
@@ -42,7 +47,53 @@ impl Recorder {
             },
         };
 
-        let res = self.http_client.post(URL).json(&data).send().await?;
+        let mut last_error = None;
+
+        for attempt in 0..self.retry_config.max_retries {
+            match self.asr_attempt(&data, URL).await {
+                Ok(text) => {
+                    if attempt > 0 {
+                        tracing::info!(
+                            "ASR request succeeded on attempt {} for URL: {}",
+                            attempt + 1,
+                            voice_url
+                        );
+                    }
+                    return Ok(text);
+                }
+                Err(e) => {
+                    last_error = Some(e);
+                    if attempt < self.retry_config.max_retries - 1 {
+                        let delay =
+                            Duration::from_millis(self.retry_config.base_delay_ms * (1 << attempt)); // 指数退避
+                        tracing::warn!(
+                            "ASR request failed on attempt {}/{}, retrying in {:?}: {}",
+                            attempt + 1,
+                            self.retry_config.max_retries,
+                            delay,
+                            last_error.as_ref().unwrap()
+                        );
+                        sleep(delay).await;
+                    }
+                }
+            }
+        }
+
+        tracing::error!(
+            "ASR request failed after {} attempts for URL {}: {}",
+            self.retry_config.max_retries,
+            voice_url,
+            last_error.as_ref().unwrap()
+        );
+        Err(last_error.unwrap())
+    }
+
+    async fn asr_attempt(&self, data: &RequestParams, url: &str) -> Result<String> {
+        let res = self.http_client.post(url).json(data).send().await?;
+
+        if !res.status().is_success() {
+            return Err(anyhow::anyhow!("ASR API returned status: {}", res.status()));
+        }
 
         let body = res.text().await?;
         let res = serde_json::from_str::<Response>(&body)?;

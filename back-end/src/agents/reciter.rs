@@ -1,3 +1,4 @@
+use super::RetryConfig;
 use crate::{
     database::models::roles::{Gender, VoiceType},
     storage::StorageClient,
@@ -5,12 +6,14 @@ use crate::{
 use anyhow::Result;
 use base64::{Engine, engine::general_purpose};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
+use tokio::time::sleep;
 
 #[derive(Clone)]
 pub struct Reciter {
     storage_client: Arc<StorageClient>,
     http_client: reqwest::Client,
+    retry_config: RetryConfig,
 }
 
 impl Reciter {
@@ -36,6 +39,7 @@ impl Reciter {
         Self {
             storage_client,
             http_client,
+            retry_config: RetryConfig::default(),
         }
     }
 
@@ -60,7 +64,52 @@ impl Reciter {
             },
         };
 
-        let res = self.http_client.post(URL).json(&data).send().await?;
+        let mut last_error = None;
+
+        for attempt in 0..self.retry_config.max_retries {
+            match self.tts_attempt(&data, URL).await {
+                Ok(audio_data) => {
+                    if attempt > 0 {
+                        tracing::info!(
+                            "TTS request succeeded on attempt {} for text: {}",
+                            attempt + 1,
+                            &text[..text.len().min(50)]
+                        );
+                    }
+                    return Ok(audio_data);
+                }
+                Err(e) => {
+                    last_error = Some(e);
+                    if attempt < self.retry_config.max_retries - 1 {
+                        let delay =
+                            Duration::from_millis(self.retry_config.base_delay_ms * (1 << attempt)); // 指数退避
+                        tracing::warn!(
+                            "TTS request failed on attempt {}/{}, retrying in {:?}: {}",
+                            attempt + 1,
+                            self.retry_config.max_retries,
+                            delay,
+                            last_error.as_ref().unwrap()
+                        );
+                        sleep(delay).await;
+                    }
+                }
+            }
+        }
+
+        tracing::error!(
+            "TTS request failed after {} attempts: {}",
+            self.retry_config.max_retries,
+            last_error.as_ref().unwrap()
+        );
+        Err(last_error.unwrap())
+    }
+
+    async fn tts_attempt(&self, data: &RequestParams, url: &str) -> Result<Vec<u8>> {
+        let res = self.http_client.post(url).json(data).send().await?;
+
+        if !res.status().is_success() {
+            return Err(anyhow::anyhow!("TTS API returned status: {}", res.status()));
+        }
 
         let body = res.text().await?;
         let res = serde_json::from_str::<Response>(&body)?;
