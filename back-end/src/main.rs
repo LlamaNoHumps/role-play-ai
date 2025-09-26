@@ -5,8 +5,6 @@ mod auth;
 mod database;
 mod env;
 mod error;
-mod reciter;
-mod recorder;
 mod server;
 mod storage;
 mod trace;

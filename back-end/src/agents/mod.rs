@@ -1,3 +1,5 @@
+pub mod reciter;
+mod recorder;
 pub mod role_builder;
 mod summarizer;
 
@@ -9,6 +11,8 @@ use llm_chain::{
 };
 use llm_chain_openai::chatgpt::Executor;
 
+pub use reciter::Reciter;
+pub use recorder::Recorder;
 pub use role_builder::RoleBuilder;
 pub use summarizer::Summarizer;
 
@@ -84,6 +88,21 @@ impl AI {
 
 pub fn remove_prefix_assistant(text: &str) -> &str {
     text.trim_start_matches("Assistant:").trim()
+}
+
+#[derive(Clone)]
+pub struct RetryConfig {
+    pub max_retries: u32,
+    pub base_delay_ms: u64,
+}
+
+impl Default for RetryConfig {
+    fn default() -> Self {
+        Self {
+            max_retries: 3,
+            base_delay_ms: 1000, // 1秒基础延迟
+        }
+    }
 }
 
 #[cfg(test)]

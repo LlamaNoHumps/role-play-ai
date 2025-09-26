@@ -1,7 +1,9 @@
 use crate::{
-    agents::{AI, Summarizer},
+    agents::{
+        AI, Summarizer,
+        reciter::{Reciter, remove_brackets},
+    },
     database::Database,
-    reciter::{Reciter, remove_brackets},
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
