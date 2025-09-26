@@ -79,9 +79,18 @@ pub async fn run() {
     let router = Router::new()
         .nest_service("/static", ServeDir::new("./static"))
         .route(handlers::index::PATH, get(handlers::index::handler))
-        .route(handlers::login::PATH, post(handlers::login::handler))
-        .route(handlers::register::PATH, post(handlers::register::handler))
-        .route(handlers::verify::PATH, get(handlers::verify::handler))
+        .route(
+            handlers::auth::login::PATH,
+            post(handlers::auth::login::handler),
+        )
+        .route(
+            handlers::auth::register::PATH,
+            post(handlers::auth::register::handler),
+        )
+        .route(
+            handlers::auth::verify::PATH,
+            get(handlers::auth::verify::handler),
+        )
         .route(handlers::upload::PATH, post(handlers::upload::handler))
         .route(
             handlers::role::create::PATH,
