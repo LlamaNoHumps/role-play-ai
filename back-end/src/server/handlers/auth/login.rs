@@ -15,17 +15,14 @@ pub async fn handler(
     Extension(database): Extension<Arc<Database>>,
     Json(data): Json<RequestParams>,
 ) -> HttpResult<Json<ResponseData>> {
-    if database
-        .verify_user(&data.username, &data.password_hash)
-        .await?
-    {
+    if database.verify_user(&data.username, &data.password).await? {
         let user = database.get_user(&data.username).await.unwrap();
         let token = Auth::create_token(user.id, user.username.clone(), &user.jwt_secret)?;
 
         Ok(Json(ResponseData {
             user_id: user.id,
             username: user.username,
-            image_url: user.image,
+            avatar: user.image,
             token,
         }))
     } else {
@@ -37,17 +34,14 @@ pub async fn handler(
 
 #[derive(Deserialize)]
 pub struct RequestParams {
-    #[serde(rename = "username")]
     username: String,
-    #[serde(rename = "password")]
-    password_hash: String,
+    password: String,
 }
 
 #[derive(Serialize)]
 pub struct ResponseData {
     user_id: i32,
     username: String,
-    #[serde(rename = "avatar")]
-    image_url: String,
+    avatar: String,
     token: String,
 }
