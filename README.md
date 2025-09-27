@@ -1,6 +1,9 @@
 # role-play-ai
 AI角色扮演平台
 
+- 项目架构见[architecture.md](https://github.com/hlf20010508/role-play-ai/blob/master/architecture.md)
+- 演示Demo见[Demo]()
+
 ## 功能
 - 自定义创建角色
 - 输入角色名后，自动生成角色，自动选择语音音色
