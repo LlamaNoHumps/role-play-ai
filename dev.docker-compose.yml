@@ -13,9 +13,9 @@ services:
     depends_on:
       - mysql
     environment:
-      - QINIU_ACCESS_KEY=YOUR_QINIU_ACCESS_KEY
-      - QINIU_SECRET_KEY=YOUR_QINIU_SECRET_KEY
-      - QINIU_AI_API_KEY=YOUR_QINIU_AI_API_KEY
+      - QINIU_ACCESS_KEY=a2_B-SvBOMJqJQ2neOaLNjBA76RUE75AaIcVg2ZI
+      - QINIU_SECRET_KEY=pp3Sltffyo3FCxu9h7BWHCSga5c0zq2jgsbdlnin
+      - QINIU_AI_API_KEY=sk-39c135618e901baf3663869f234ee099d22842e5a21e1402131941bfe8680bff
       - QINIU_LLM_MODEL=deepseek/deepseek-v3.1-terminus
       - QINIU_LLM_THINKING_MODEL=deepseek-r1-0528
       - MYSQL_USERNAME=root
