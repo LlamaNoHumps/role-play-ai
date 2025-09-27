@@ -1,21 +1,24 @@
-use std::{sync::Arc, time::Duration};
-
 use crate::{
-    agents::{AI, RoleBuilder, Summarizer},
+    agents::{AI, Debater, Reciter, Recorder, RoleBuilder, Summarizer},
     database::Database,
     env::ENV,
     storage::StorageClient,
     trace::trace_middleware,
 };
 use axum::{
-    Extension, Router, middleware,
-    routing::{get, post},
+    Extension, Router,
+    extract::DefaultBodyLimit,
+    middleware,
+    routing::{delete, get, post},
 };
 use socketioxide::{SocketIo, extract::SocketRef};
+use std::{sync::Arc, time::Duration};
 use tower_http::services::ServeDir;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
+mod auth;
 mod handlers;
+mod sockets;
 
 pub async fn run() {
     let env = ENV.get().unwrap();
@@ -43,21 +46,61 @@ pub async fn run() {
     .unwrap();
     database.init().await.unwrap();
 
-    let ai = AI::new(&env.qiniu_ai_api_key);
-    let role_builder = RoleBuilder::new(ai.clone());
-
     let (socketio_layer, socketio) = SocketIo::builder()
         .ping_interval(Duration::from_secs(3))
         .ping_timeout(Duration::from_secs(2))
         .build_layer();
 
-    socketio.ns("/", |s: SocketRef| {});
+    let ai = AI::new(
+        &env.qiniu_ai_api_key,
+        &env.qiniu_llm_model,
+        &env.qiniu_llm_thinking_model,
+    );
+
+    let storage_client = Arc::new(storage_client);
+    let database = Arc::new(database);
+
+    let reciter = Reciter::new(storage_client.clone(), &env.qiniu_ai_api_key);
+    let role_builder = RoleBuilder::new(ai.clone(), Some(socketio.clone()), reciter.clone());
+    let debater = Debater::new(ai.clone(), database.clone());
+
+    let role_builder = Arc::new(role_builder);
+    let socketio = Arc::new(socketio);
+    let auth = auth::Auth::new(database.clone());
+
+    let recorder = Recorder::new(&env.qiniu_ai_api_key);
+    let database_s = database.clone();
+    let summarizer = Arc::new(Summarizer::new(ai.clone(), database.clone()));
+    let reciter_s = reciter.clone();
+    let ai = Arc::new(ai);
+    socketio.ns("/", |s: SocketRef| {
+        sockets::connect(&s);
+        s.on_disconnect(sockets::disconnect);
+        s.on(sockets::join::EVENT, sockets::join::handler);
+        s.on(sockets::message::EVENT, sockets::message::handler);
+        s.on(sockets::voice::EVENT, sockets::voice::handler);
+        s.extensions.insert(database_s);
+        s.extensions.insert(ai);
+        s.extensions.insert(reciter_s);
+        s.extensions.insert(recorder);
+        s.extensions.insert(summarizer);
+    });
 
     let router = Router::new()
         .nest_service("/static", ServeDir::new("./static"))
         .route(handlers::index::PATH, get(handlers::index::handler))
-        .route(handlers::login::PATH, post(handlers::login::handler))
-        .route(handlers::register::PATH, post(handlers::register::handler))
+        .route(
+            handlers::auth::login::PATH,
+            post(handlers::auth::login::handler),
+        )
+        .route(
+            handlers::auth::register::PATH,
+            post(handlers::auth::register::handler),
+        )
+        .route(
+            handlers::auth::verify::PATH,
+            get(handlers::auth::verify::handler),
+        )
         .route(handlers::upload::PATH, post(handlers::upload::handler))
         .route(
             handlers::role::create::PATH,
@@ -76,6 +119,10 @@ pub async fn run() {
             get(handlers::role::list::handler),
         )
         .route(
+            handlers::role::search::PATH,
+            get(handlers::role::search::handler),
+        )
+        .route(
             handlers::conversation::new::PATH,
             post(handlers::conversation::new::handler),
         )
@@ -87,13 +134,64 @@ pub async fn run() {
             handlers::conversation::dialogs::PATH,
             get(handlers::conversation::dialogs::handler),
         )
+        .route(
+            handlers::conversation::delete::PATH,
+            post(handlers::conversation::delete::handler),
+        )
+        .route(
+            handlers::user::avatar::PATH,
+            post(handlers::user::avatar::handler),
+        )
+        .route(
+            handlers::user::profile::PATH,
+            get(handlers::user::profile::get_handler).put(handlers::user::profile::put_handler),
+        )
+        .route(
+            handlers::user::conversations::PATH,
+            delete(handlers::user::conversations::handler),
+        )
+        .route(
+            handlers::user::roles::LIST_PATH,
+            get(handlers::user::roles::list_handler),
+        )
+        .route(
+            handlers::user::roles::DELETE_PATH,
+            delete(handlers::user::roles::delete_handler),
+        )
+        .route(
+            handlers::debate::new::PATH,
+            post(handlers::debate::new::handler),
+        )
+        .route(
+            handlers::debate::start::PATH,
+            post(handlers::debate::start::handler),
+        )
+        .route(
+            handlers::debate::list::PATH,
+            post(handlers::debate::list::handler),
+        )
+        .route(
+            handlers::debate::dialogs::PATH,
+            post(handlers::debate::dialogs::handler),
+        )
+        .route(
+            handlers::debate::delete::PATH,
+            post(handlers::debate::delete::handler),
+        )
+        .route(
+            handlers::user::debates::PATH,
+            post(handlers::user::debates::handler),
+        )
         .layer(middleware::from_fn(trace_middleware))
-        .layer(storage_client.into_layer())
-        .layer(database.into_layer())
-        .layer(ai.into_layer())
-        .layer(role_builder.into_layer())
+        .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
+        .layer(Extension(storage_client))
+        .layer(Extension(database))
+        .layer(Extension(auth))
+        .layer(Extension(role_builder))
+        .layer(Extension(reciter))
+        .layer(Extension(debater))
         .layer(socketio_layer)
-        .layer(Extension(Arc::new(socketio)));
+        .layer(Extension(socketio));
 
     let listener = tokio::net::TcpListener::bind((HOST, port)).await.unwrap();
 

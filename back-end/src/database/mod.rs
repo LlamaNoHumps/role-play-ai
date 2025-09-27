@@ -1,17 +1,23 @@
 pub mod init;
 pub mod models;
-pub mod status;
-
-use std::sync::Arc;
 
 use anyhow::Result;
-use axum::Extension;
+use chrono::Utc;
+use models::roles::{AgeGroup, Column, Entity, Gender};
 use sea_orm::{
     ActiveValue::{self, Set},
     ColumnTrait, ConnectionTrait, DatabaseConnection, EntityTrait, QueryFilter,
+    prelude::Expr,
 };
+use uuid::Uuid;
 
 const DB_NAME: &str = "role-play-ai";
+
+pub struct PaginatedResult<T> {
+    pub items: Vec<T>,
+    pub total: i64,
+    pub has_more: bool,
+}
 
 pub struct Database {
     connection: DatabaseConnection,
@@ -35,11 +41,14 @@ impl Database {
     }
 
     pub async fn add_user(&self, username: &str, password_hash: &str, image: &str) -> Result<i32> {
+        let jwt_secret = generate_jwt_secret();
+
         let user = models::users::ActiveModel {
             id: ActiveValue::default(),
             username: Set(username.to_string()),
             password_hash: Set(password_hash.to_string()),
             image: Set(image.to_string()),
+            jwt_secret: Set(jwt_secret),
         };
 
         let res = models::users::Entity::insert(user)
@@ -97,6 +106,8 @@ impl Database {
             id: ActiveValue::default(),
             user_id: Set(user_id),
             role_id: Set(role_id),
+            last_dialog_timestamp: Set(Utc::now().timestamp()),
+            history: Set(String::new()),
         };
 
         models::conversations::Entity::insert(conversation)
@@ -106,25 +117,78 @@ impl Database {
         Ok(())
     }
 
-    pub async fn list_conversations(
+    pub async fn list_conversations_paginated(
         &self,
         user_id: i32,
-    ) -> Result<Vec<models::conversations::Model>> {
-        let conversations = models::conversations::Entity::find()
-            .filter(models::conversations::Column::UserId.eq(user_id))
-            .all(&self.connection)
-            .await?;
+        offset: i64,
+        limit: i64,
+    ) -> Result<PaginatedResult<models::conversations::Model>> {
+        use sea_orm::{PaginatorTrait, QueryOrder};
 
-        Ok(conversations)
+        let paginator = models::conversations::Entity::find()
+            .filter(models::conversations::Column::UserId.eq(user_id))
+            .order_by_desc(models::conversations::Column::LastDialogTimestamp)
+            .paginate(&self.connection, limit as u64);
+
+        let num_pages = paginator.num_pages().await?;
+        let total = paginator.num_items().await?;
+
+        let page_number = (offset / limit) as u64;
+        let items = paginator.fetch_page(page_number).await?;
+        let has_more = (page_number + 1) < num_pages;
+
+        Ok(PaginatedResult {
+            items,
+            total: total as i64,
+            has_more,
+        })
     }
 
-    pub async fn list_dialogs(
+    pub async fn update_conversation_last_dialog_timestamp(
         &self,
         user_id: i32,
         role_id: i32,
-    ) -> Result<Vec<models::conversation_template::Model>> {
+        timestamp: i64,
+    ) -> Result<()> {
+        models::conversations::Entity::update_many()
+            .col_expr(
+                models::conversations::Column::LastDialogTimestamp,
+                Expr::value(timestamp),
+            )
+            .filter(models::conversations::Column::UserId.eq(user_id))
+            .filter(models::conversations::Column::RoleId.eq(role_id))
+            .exec(&self.connection)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn list_dialogs_paginated(
+        &self,
+        user_id: i32,
+        role_id: i32,
+        offset: i64,
+        limit: i64,
+    ) -> Result<PaginatedResult<models::conversation_template::Model>> {
         let table_name = format!("conv_{}_{}", user_id, role_id);
-        let sql = format!("SELECT * FROM `{}` ORDER BY timestamp ASC", table_name);
+
+        let count_sql = format!("SELECT COUNT(*) as total FROM `{}`", table_name);
+        let count_res = self
+            .connection
+            .query_one(sea_orm::Statement::from_string(
+                self.connection.get_database_backend(),
+                count_sql,
+            ))
+            .await?;
+
+        let total: i64 = count_res
+            .and_then(|row| row.try_get("", "total").ok())
+            .unwrap_or(0);
+
+        let sql = format!(
+            "SELECT * FROM `{}` ORDER BY timestamp ASC LIMIT {} OFFSET {}",
+            table_name, limit, offset
+        );
 
         let res = self
             .connection
@@ -145,7 +209,13 @@ impl Database {
             })
             .collect::<Vec<models::conversation_template::Model>>();
 
-        Ok(dialogs)
+        let has_more = (offset + limit) < total;
+
+        Ok(PaginatedResult {
+            items: dialogs,
+            total,
+            has_more,
+        })
     }
 
     pub async fn add_dialog(
@@ -177,22 +247,33 @@ impl Database {
             ))
             .await?;
 
+        self.update_conversation_last_dialog_timestamp(user_id, role_id, timestamp)
+            .await?;
+
         Ok(res.last_insert_id() as i32)
     }
 
     pub async fn add_role(
         &self,
+        user_id: i32,
         name: &str,
         description: &str,
         traits: &str,
         image: &str,
+        gender: Gender,
+        age_group: AgeGroup,
+        voice_type: &str,
     ) -> Result<i32> {
         let role = models::roles::ActiveModel {
             id: ActiveValue::default(),
+            user_id: Set(user_id),
             name: Set(name.to_string()),
             description: Set(description.to_string()),
             traits: Set(traits.to_string()),
             image: Set(image.to_string()),
+            gender: Set(gender),
+            age_group: Set(age_group),
+            voice_type: Set(voice_type.to_string()),
         };
 
         let res = models::roles::Entity::insert(role)
@@ -210,13 +291,674 @@ impl Database {
         role.ok_or_else(|| anyhow::anyhow!("Role not found"))
     }
 
-    pub async fn list_roles(&self) -> Result<Vec<models::roles::Model>> {
-        let roles = models::roles::Entity::find().all(&self.connection).await?;
+    pub async fn list_roles_paginated(
+        &self,
+        offset: i64,
+        limit: i64,
+    ) -> Result<PaginatedResult<models::roles::Model>> {
+        use sea_orm::{PaginatorTrait, QueryOrder};
+
+        let paginator = models::roles::Entity::find()
+            .order_by_asc(models::roles::Column::Id)
+            .paginate(&self.connection, limit as u64);
+
+        let num_pages = paginator.num_pages().await?;
+        let total = paginator.num_items().await?;
+
+        let page_number = (offset / limit) as u64;
+        let items = paginator.fetch_page(page_number).await?;
+        let has_more = (page_number + 1) < num_pages;
+
+        Ok(PaginatedResult {
+            items,
+            total: total as i64,
+            has_more,
+        })
+    }
+
+    pub async fn search_roles(&self, keyword: &str) -> Result<Vec<models::roles::Model>> {
+        let keyword = format!("%{}%", keyword);
+
+        let roles = Entity::find()
+            .filter(
+                Expr::col(Column::Name)
+                    .like(&keyword)
+                    .or(Expr::col(Column::Description).like(&keyword))
+                    .or(Expr::col(Column::Traits).like(&keyword)),
+            )
+            .all(&self.connection)
+            .await?;
 
         Ok(roles)
     }
 
-    pub fn into_layer(self) -> Extension<Arc<Self>> {
-        Extension(Arc::new(self))
+    pub async fn delete_conversation(&self, user_id: i32, role_id: i32) -> Result<()> {
+        let table_name = format!("conv_{}_{}", user_id, role_id);
+        let drop_sql = format!("DROP TABLE IF EXISTS `{}`", table_name);
+
+        self.connection
+            .execute(sea_orm::Statement::from_string(
+                self.connection.get_database_backend(),
+                drop_sql,
+            ))
+            .await?;
+
+        models::conversations::Entity::delete_many()
+            .filter(models::conversations::Column::UserId.eq(user_id))
+            .filter(models::conversations::Column::RoleId.eq(role_id))
+            .exec(&self.connection)
+            .await?;
+
+        Ok(())
     }
+
+    pub async fn get_dialog_count(&self, user_id: i32, role_id: i32) -> Result<i64> {
+        let table_name = format!("conv_{}_{}", user_id, role_id);
+        let sql = format!("SELECT COUNT(*) as count FROM `{}`", table_name);
+
+        let res = self
+            .connection
+            .query_one(sea_orm::Statement::from_string(
+                self.connection.get_database_backend(),
+                sql,
+            ))
+            .await?;
+
+        Ok(res.unwrap().try_get("", "count").unwrap_or(0))
+    }
+
+    pub async fn get_recent_dialogs(
+        &self,
+        user_id: i32,
+        role_id: i32,
+        limit: i64,
+    ) -> Result<Vec<models::conversation_template::Model>> {
+        let table_name = format!("conv_{}_{}", user_id, role_id);
+        let sql = format!(
+            "SELECT * FROM `{}` ORDER BY timestamp DESC LIMIT {}",
+            table_name, limit
+        );
+
+        let res = self
+            .connection
+            .query_all(sea_orm::Statement::from_string(
+                self.connection.get_database_backend(),
+                sql,
+            ))
+            .await?;
+
+        let mut dialogs = res
+            .into_iter()
+            .map(|row| models::conversation_template::Model {
+                id: row.try_get("", "id").unwrap_or(0),
+                is_user: row.try_get("", "is_user").unwrap_or(false),
+                timestamp: row.try_get("", "timestamp").unwrap_or(0),
+                text: row.try_get("", "text").unwrap_or_default(),
+                voice: row.try_get("", "voice").ok(),
+            })
+            .collect::<Vec<models::conversation_template::Model>>();
+
+        dialogs.reverse();
+        Ok(dialogs)
+    }
+
+    pub async fn get_conversation(
+        &self,
+        user_id: i32,
+        role_id: i32,
+    ) -> Result<Option<models::conversations::Model>> {
+        let conversation = models::conversations::Entity::find()
+            .filter(models::conversations::Column::UserId.eq(user_id))
+            .filter(models::conversations::Column::RoleId.eq(role_id))
+            .one(&self.connection)
+            .await?;
+
+        Ok(conversation)
+    }
+
+    pub async fn update_conversation_history(
+        &self,
+        user_id: i32,
+        role_id: i32,
+        history: &str,
+    ) -> Result<()> {
+        models::conversations::Entity::update_many()
+            .col_expr(
+                models::conversations::Column::History,
+                Expr::value(history.to_string()),
+            )
+            .filter(models::conversations::Column::UserId.eq(user_id))
+            .filter(models::conversations::Column::RoleId.eq(role_id))
+            .exec(&self.connection)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn get_history(&self, user_id: i32, role_id: i32) -> Result<String> {
+        let conversation = self.get_conversation(user_id, role_id).await?;
+        let stored_history = conversation
+            .map(|c| c.history)
+            .filter(|h| !h.is_empty() && h != "无")
+            .unwrap_or("无".to_string());
+
+        let recent_dialogs = self.get_recent_dialogs(user_id, role_id, 10).await?;
+        let recent_history = {
+            let recent_history = recent_dialogs
+                .into_iter()
+                .map(|d| {
+                    if d.is_user {
+                        format!("User: {}", d.text)
+                    } else {
+                        format!("Assistant: {}", d.text)
+                    }
+                })
+                .collect::<Vec<String>>()
+                .join("\n");
+
+            if recent_history.is_empty() {
+                "无".to_string()
+            } else {
+                recent_history
+            }
+        };
+
+        Ok(format!(
+            "===历史记录总结===\n{}\n===最近对话===\n{}",
+            stored_history, recent_history
+        ))
+    }
+
+    pub async fn update_user_avatar(&self, user_id: i32, avatar_url: &str) -> Result<()> {
+        models::users::Entity::update_many()
+            .col_expr(
+                models::users::Column::Image,
+                Expr::value(avatar_url.to_string()),
+            )
+            .filter(models::users::Column::Id.eq(user_id))
+            .exec(&self.connection)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn update_user_password(&self, user_id: i32, new_password_hash: &str) -> Result<()> {
+        models::users::Entity::update_many()
+            .col_expr(
+                models::users::Column::PasswordHash,
+                Expr::value(new_password_hash.to_string()),
+            )
+            .filter(models::users::Column::Id.eq(user_id))
+            .exec(&self.connection)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn delete_all_user_conversations(&self, user_id: i32) -> Result<u64> {
+        let conversations = models::conversations::Entity::find()
+            .filter(models::conversations::Column::UserId.eq(user_id))
+            .all(&self.connection)
+            .await?;
+
+        let mut deleted_count = 0u64;
+
+        for conv in conversations {
+            let table_name = format!("conv_{}_{}", conv.user_id, conv.role_id);
+            let drop_sql = format!("DROP TABLE IF EXISTS `{}`", table_name);
+
+            self.connection
+                .execute(sea_orm::Statement::from_string(
+                    self.connection.get_database_backend(),
+                    drop_sql,
+                ))
+                .await?;
+
+            deleted_count += 1;
+        }
+
+        models::conversations::Entity::delete_many()
+            .filter(models::conversations::Column::UserId.eq(user_id))
+            .exec(&self.connection)
+            .await?;
+
+        Ok(deleted_count)
+    }
+
+    pub async fn delete_role_and_conversations(&self, role_id: i32) -> Result<()> {
+        let conversations = models::conversations::Entity::find()
+            .filter(models::conversations::Column::RoleId.eq(role_id))
+            .all(&self.connection)
+            .await?;
+
+        for conv in conversations {
+            let table_name = format!("conv_{}_{}", conv.user_id, conv.role_id);
+            let drop_sql = format!("DROP TABLE IF EXISTS `{}`", table_name);
+
+            self.connection
+                .execute(sea_orm::Statement::from_string(
+                    self.connection.get_database_backend(),
+                    drop_sql,
+                ))
+                .await?;
+        }
+
+        models::conversations::Entity::delete_many()
+            .filter(models::conversations::Column::RoleId.eq(role_id))
+            .exec(&self.connection)
+            .await?;
+
+        models::roles::Entity::delete_by_id(role_id)
+            .exec(&self.connection)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn get_user_roles(&self, user_id: i32) -> Result<Vec<models::roles::Model>> {
+        let roles = models::roles::Entity::find()
+            .filter(models::roles::Column::UserId.eq(user_id))
+            .all(&self.connection)
+            .await?;
+        Ok(roles)
+    }
+
+    pub async fn create_debate_table(
+        &self,
+        user_id: i32,
+        role1_id: i32,
+        role2_id: i32,
+        topic: &str,
+    ) -> Result<i32> {
+        // 生成带UUID的唯一表名
+        let uuid = Uuid::new_v4().to_string().replace('-', "");
+        let table_name = format!("debate_{}_{}_{}_{}", user_id, role1_id, role2_id, uuid);
+
+        let sql = format!(
+            "CREATE TABLE IF NOT EXISTS `{}` LIKE `debate_template`",
+            table_name
+        );
+
+        self.connection
+            .execute(sea_orm::Statement::from_string(
+                self.connection.get_database_backend(),
+                sql,
+            ))
+            .await?;
+
+        // 总是创建新的debate记录，不再检查重复
+        let debate = models::debates::ActiveModel {
+            id: ActiveValue::default(),
+            user_id: Set(user_id),
+            role1_id: Set(role1_id),
+            role2_id: Set(role2_id),
+            topic: Set(topic.to_string()),
+            table_name: Set(table_name),
+            last_dialog_timestamp: Set(Utc::now().timestamp()),
+            history: Set(String::new()),
+            current_speaker_id: Set(role1_id),
+        };
+
+        let res = models::debates::Entity::insert(debate)
+            .exec(&self.connection)
+            .await?;
+
+        Ok(res.last_insert_id)
+    }
+
+    pub async fn get_debate_by_id(&self, debate_id: i32) -> Result<Option<models::debates::Model>> {
+        let debate = models::debates::Entity::find_by_id(debate_id)
+            .one(&self.connection)
+            .await?;
+
+        Ok(debate)
+    }
+
+    // 保留旧的get_debate函数用于兼容性，但现在它返回第一个匹配的debate
+    pub async fn get_debate(
+        &self,
+        user_id: i32,
+        role1_id: i32,
+        role2_id: i32,
+    ) -> Result<Option<models::debates::Model>> {
+        let debate = models::debates::Entity::find()
+            .filter(models::debates::Column::UserId.eq(user_id))
+            .filter(models::debates::Column::Role1Id.eq(role1_id))
+            .filter(models::debates::Column::Role2Id.eq(role2_id))
+            .one(&self.connection)
+            .await?;
+
+        Ok(debate)
+    }
+
+    pub async fn get_recent_debate_dialogs(
+        &self,
+        user_id: i32,
+        role1_id: i32,
+        role2_id: i32,
+        limit: i64,
+    ) -> Result<Vec<models::debate_template::Model>> {
+        // 为了兼容性保留这个函数，但它现在获取第一个匹配的debate的dialogs
+        if let Some(debate) = self.get_debate(user_id, role1_id, role2_id).await? {
+            return self
+                .get_debate_dialogs_by_table_name(&debate.table_name, limit)
+                .await;
+        }
+        Ok(vec![])
+    }
+
+    pub async fn get_debate_dialogs_by_id(
+        &self,
+        debate_id: i32,
+        limit: i64,
+    ) -> Result<Vec<models::debate_template::Model>> {
+        if let Some(debate) = self.get_debate_by_id(debate_id).await? {
+            return self
+                .get_debate_dialogs_by_table_name(&debate.table_name, limit)
+                .await;
+        }
+        Ok(vec![])
+    }
+
+    pub async fn get_debate_dialogs_by_table_name(
+        &self,
+        table_name: &str,
+        limit: i64,
+    ) -> Result<Vec<models::debate_template::Model>> {
+        let sql = format!(
+            "SELECT * FROM `{}` ORDER BY timestamp DESC LIMIT {}",
+            table_name, limit
+        );
+
+        let res = self
+            .connection
+            .query_all(sea_orm::Statement::from_string(
+                self.connection.get_database_backend(),
+                sql,
+            ))
+            .await?;
+
+        let mut dialogs = res
+            .into_iter()
+            .map(|row| models::debate_template::Model {
+                id: row.try_get("", "id").unwrap_or(0),
+                role_id: row.try_get("", "role_id").unwrap_or(0),
+                timestamp: row.try_get("", "timestamp").unwrap_or(0),
+                text: row.try_get("", "text").unwrap_or_default(),
+                voice: row.try_get("", "voice").ok(),
+            })
+            .collect::<Vec<models::debate_template::Model>>();
+
+        dialogs.reverse();
+        Ok(dialogs)
+    }
+
+    pub async fn get_debate_history(
+        &self,
+        user_id: i32,
+        role1_id: i32,
+        role2_id: i32,
+    ) -> Result<String> {
+        let debate = self.get_debate(user_id, role1_id, role2_id).await?;
+        let stored_history = debate
+            .map(|d| d.history)
+            .filter(|h| !h.is_empty() && h != "无")
+            .unwrap_or("无".to_string());
+
+        let recent_dialogs = self
+            .get_recent_debate_dialogs(user_id, role1_id, role2_id, 10)
+            .await?;
+        let recent_history = {
+            let recent_history = recent_dialogs
+                .into_iter()
+                .map(|d| {
+                    if d.role_id == role1_id {
+                        format!("你: {}", d.text)
+                    } else {
+                        format!("对方: {}", d.text)
+                    }
+                })
+                .collect::<Vec<String>>()
+                .join("\n");
+            if recent_history.is_empty() {
+                "无".to_string()
+            } else {
+                recent_history
+            }
+        };
+
+        Ok(format!(
+            "===历史记录总结===\n{}\n===最近对话===\n{}",
+            stored_history, recent_history
+        ))
+    }
+
+    pub async fn add_debate_dialog_by_id(
+        &self,
+        debate_id: i32,
+        role_id: i32,
+        timestamp: i64,
+        text: &str,
+        voice: Option<String>,
+    ) -> Result<i32> {
+        if let Some(debate) = self.get_debate_by_id(debate_id).await? {
+            let sql = format!(
+                "INSERT INTO `{}` (role_id, timestamp, text, voice) VALUES (?, ?, ?, ?)",
+                debate.table_name
+            );
+
+            let res = self
+                .connection
+                .execute(sea_orm::Statement::from_sql_and_values(
+                    self.connection.get_database_backend(),
+                    sql,
+                    vec![
+                        sea_orm::Value::from(role_id),
+                        sea_orm::Value::from(timestamp),
+                        sea_orm::Value::from(text),
+                        sea_orm::Value::from(voice),
+                    ],
+                ))
+                .await?;
+
+            self.update_debate_timestamp_by_id(debate_id, timestamp)
+                .await?;
+
+            return Ok(res.last_insert_id() as i32);
+        }
+        Err(anyhow::anyhow!("Debate not found"))
+    }
+
+    pub async fn update_debate_timestamp_by_id(
+        &self,
+        debate_id: i32,
+        timestamp: i64,
+    ) -> Result<()> {
+        models::debates::Entity::update_many()
+            .col_expr(
+                models::debates::Column::LastDialogTimestamp,
+                Expr::value(timestamp),
+            )
+            .filter(models::debates::Column::Id.eq(debate_id))
+            .exec(&self.connection)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn list_debates_paginated(
+        &self,
+        user_id: i32,
+        offset: i64,
+        limit: i64,
+    ) -> Result<PaginatedResult<models::debates::Model>> {
+        use sea_orm::{PaginatorTrait, QueryOrder};
+
+        let paginator = models::debates::Entity::find()
+            .filter(models::debates::Column::UserId.eq(user_id))
+            .order_by_desc(models::debates::Column::LastDialogTimestamp)
+            .paginate(&self.connection, limit as u64);
+
+        let num_pages = paginator.num_pages().await?;
+        let total = paginator.num_items().await?;
+
+        let page_number = (offset / limit) as u64;
+        let items = paginator.fetch_page(page_number).await?;
+        let has_more = (page_number + 1) < num_pages;
+
+        Ok(PaginatedResult {
+            items,
+            total: total as i64,
+            has_more,
+        })
+    }
+
+    pub async fn list_debate_dialogs_paginated(
+        &self,
+        user_id: i32,
+        role1_id: i32,
+        role2_id: i32,
+        offset: i64,
+        limit: i64,
+    ) -> Result<PaginatedResult<models::debate_template::Model>> {
+        // 为了兼容性保留这个函数，使用第一个匹配的debate
+        if let Some(debate) = self.get_debate(user_id, role1_id, role2_id).await? {
+            return self
+                .list_debate_dialogs_paginated_by_id(debate.id, offset, limit)
+                .await;
+        }
+        Ok(PaginatedResult {
+            items: vec![],
+            total: 0,
+            has_more: false,
+        })
+    }
+
+    pub async fn list_debate_dialogs_paginated_by_id(
+        &self,
+        debate_id: i32,
+        offset: i64,
+        limit: i64,
+    ) -> Result<PaginatedResult<models::debate_template::Model>> {
+        if let Some(debate) = self.get_debate_by_id(debate_id).await? {
+            let count_sql = format!("SELECT COUNT(*) as total FROM `{}`", debate.table_name);
+            let count_res = self
+                .connection
+                .query_one(sea_orm::Statement::from_string(
+                    self.connection.get_database_backend(),
+                    count_sql,
+                ))
+                .await?;
+
+            let total: i64 = count_res
+                .and_then(|row| row.try_get("", "total").ok())
+                .unwrap_or(0);
+
+            let sql = format!(
+                "SELECT * FROM `{}` ORDER BY timestamp ASC LIMIT {} OFFSET {}",
+                debate.table_name, limit, offset
+            );
+
+            let res = self
+                .connection
+                .query_all(sea_orm::Statement::from_string(
+                    self.connection.get_database_backend(),
+                    sql,
+                ))
+                .await?;
+
+            let dialogs = res
+                .into_iter()
+                .map(|row| models::debate_template::Model {
+                    id: row.try_get("", "id").unwrap_or(0),
+                    role_id: row.try_get("", "role_id").unwrap_or(0),
+                    timestamp: row.try_get("", "timestamp").unwrap_or(0),
+                    text: row.try_get("", "text").unwrap_or_default(),
+                    voice: row.try_get("", "voice").ok(),
+                })
+                .collect::<Vec<models::debate_template::Model>>();
+
+            let has_more = (offset + limit) < total;
+
+            return Ok(PaginatedResult {
+                items: dialogs,
+                total,
+                has_more,
+            });
+        }
+        Ok(PaginatedResult {
+            items: vec![],
+            total: 0,
+            has_more: false,
+        })
+    }
+
+    pub async fn update_debate_current_speaker_id_by_id(
+        &self,
+        debate_id: i32,
+        current_speaker_id: i32,
+    ) -> Result<()> {
+        models::debates::Entity::update_many()
+            .col_expr(
+                models::debates::Column::CurrentSpeakerId,
+                Expr::value(current_speaker_id),
+            )
+            .filter(models::debates::Column::Id.eq(debate_id))
+            .exec(&self.connection)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn delete_debate_with_dialogs(&self, debate_id: i32) -> Result<()> {
+        if let Some(debate) = self.get_debate_by_id(debate_id).await? {
+            // 使用存储在数据库中的table_name而不是计算得出的
+            let drop_sql = format!("DROP TABLE IF EXISTS `{}`", debate.table_name);
+
+            self.connection
+                .execute(sea_orm::Statement::from_string(
+                    self.connection.get_database_backend(),
+                    drop_sql,
+                ))
+                .await?;
+
+            models::debates::Entity::delete_by_id(debate_id)
+                .exec(&self.connection)
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn delete_all_user_debates(&self, user_id: i32) -> Result<i32> {
+        let debates = models::debates::Entity::find()
+            .filter(models::debates::Column::UserId.eq(user_id))
+            .all(&self.connection)
+            .await?;
+
+        let count = debates.len() as i32;
+
+        for debate in debates {
+            // 使用存储在数据库中的table_name而不是计算得出的
+            let drop_sql = format!("DROP TABLE IF EXISTS `{}`", debate.table_name);
+
+            self.connection
+                .execute(sea_orm::Statement::from_string(
+                    self.connection.get_database_backend(),
+                    drop_sql,
+                ))
+                .await?;
+
+            models::debates::Entity::delete_by_id(debate.id)
+                .exec(&self.connection)
+                .await?;
+        }
+
+        Ok(count)
+    }
+}
+
+fn generate_jwt_secret() -> String {
+    use uuid::Uuid;
+    format!(
+        "{}_{}",
+        Uuid::new_v4().to_string().replace('-', ""),
+        chrono::Utc::now().timestamp()
+    )
 }

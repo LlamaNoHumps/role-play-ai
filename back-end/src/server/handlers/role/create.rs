@@ -1,4 +1,10 @@
-use crate::{database::Database, error::HttpResult};
+use crate::{
+    database::{
+        Database,
+        models::roles::{AgeGroup, Gender},
+    },
+    error::HttpResult,
+};
 use axum::{Extension, Json};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -9,14 +15,27 @@ pub const PATH: &str = "/api/role/create";
 pub async fn handler(
     Extension(database): Extension<Arc<Database>>,
     Json(RequestParams {
+        user_id,
         name,
         description,
         traits,
-        image_url,
+        avatar,
+        gender,
+        age_group,
+        voice_type,
     }): Json<RequestParams>,
 ) -> HttpResult<Json<ResponseData>> {
     let role_id = database
-        .add_role(&name, &description, &traits, &image_url)
+        .add_role(
+            user_id,
+            &name,
+            &description,
+            &traits,
+            &avatar,
+            gender,
+            age_group,
+            &voice_type,
+        )
         .await?;
 
     Ok(Json(ResponseData { role_id }))
@@ -24,11 +43,14 @@ pub async fn handler(
 
 #[derive(Deserialize)]
 pub struct RequestParams {
+    pub user_id: i32,
     pub name: String,
     pub description: String,
     pub traits: String,
-    #[serde(rename = "avatar")]
-    pub image_url: String,
+    pub avatar: String,
+    pub gender: Gender,
+    pub age_group: AgeGroup,
+    pub voice_type: String,
 }
 
 #[derive(Serialize)]

@@ -1,17 +1,20 @@
-mod role_builder;
+mod debater;
+pub mod reciter;
+mod recorder;
+pub mod role_builder;
 mod summarizer;
-
-use std::sync::Arc;
 
 use anyhow::Result;
 use async_openai::config::OpenAIConfig;
-use axum::Extension;
 use llm_chain::{
     options::{ModelRef, Opt, Options},
     parameters, prompt,
 };
 use llm_chain_openai::chatgpt::Executor;
 
+pub use debater::Debater;
+pub use reciter::Reciter;
+pub use recorder::Recorder;
 pub use role_builder::RoleBuilder;
 pub use summarizer::Summarizer;
 
@@ -22,7 +25,7 @@ pub struct AI {
 }
 
 impl AI {
-    pub fn new(api_key: &str) -> Self {
+    pub fn new(api_key: &str, llm_model: &str, llm_thinking_model: &str) -> Self {
         let config = OpenAIConfig::new()
             .with_api_base("https://openai.qiniu.com/v1")
             .with_api_key(api_key);
@@ -30,9 +33,7 @@ impl AI {
 
         let mut options_builder = Options::builder();
         options_builder.add_option(Opt::ApiKey(api_key.to_string()));
-        options_builder.add_option(Opt::Model(ModelRef::from_model_name(
-            "deepseek/deepseek-v3.1-terminus",
-        )));
+        options_builder.add_option(Opt::Model(ModelRef::from_model_name(llm_model)));
         options_builder.add_option(Opt::Stream(false));
 
         let options = options_builder.build();
@@ -41,7 +42,7 @@ impl AI {
 
         let mut options_builder = Options::builder();
         options_builder.add_option(Opt::ApiKey(api_key.to_string()));
-        options_builder.add_option(Opt::Model(ModelRef::from_model_name("deepseek-r1-0528")));
+        options_builder.add_option(Opt::Model(ModelRef::from_model_name(llm_thinking_model)));
         options_builder.add_option(Opt::Stream(false));
 
         let options = options_builder.build();
@@ -54,21 +55,53 @@ impl AI {
         }
     }
 
-    pub async fn chat_once(&self, system: &str, user: &str) -> Result<String> {
-        let res = prompt!(system, "{{user}}")
-            .run(&parameters!("user" => user), &self.thinking_executor)
-            .await?;
-        Ok(res
+    pub async fn chat_once(
+        &self,
+        system: &str,
+        user: &str,
+        history: Option<&str>,
+    ) -> Result<String> {
+        let history = history.unwrap_or_default();
+
+        println!("System Prompt:\n{}", system);
+        println!("History:\n{}", history);
+        println!("User Input:\n{}", user);
+
+        let res = prompt!("{{system}}\n{{history}}", "{{user}}\nAssistant:")
+            .run(
+                &parameters!("system" => system, "history" => history, "user" => user),
+                &self.thinking_executor,
+            )
+            .await?
             .to_immediate()
             .await?
             .as_content()
             .to_text()
             .trim()
-            .to_string())
-    }
+            .to_string();
 
-    pub fn into_layer(self) -> Extension<Arc<Self>> {
-        Extension(Arc::new(self))
+        let res = remove_prefix_assistant(&res);
+
+        Ok(res.to_string())
+    }
+}
+
+pub fn remove_prefix_assistant(text: &str) -> &str {
+    text.trim_start_matches("Assistant:").trim()
+}
+
+#[derive(Clone)]
+pub struct RetryConfig {
+    pub max_retries: u32,
+    pub base_delay_ms: u64,
+}
+
+impl Default for RetryConfig {
+    fn default() -> Self {
+        Self {
+            max_retries: 3,
+            base_delay_ms: 1000, // 1秒基础延迟
+        }
     }
 }
 
@@ -111,8 +144,15 @@ mod tests {
 3. “假如我们以光速飞行，会发生什么？”（荒诞假设）"#;
 
         let env = get_env();
-        let ai = AI::new(&env.qiniu_ai_api_key);
-        let reply = ai.chat_once(prompt, "你最近在忙什么呀？").await.unwrap();
+        let ai = AI::new(
+            &env.qiniu_ai_api_key,
+            &env.qiniu_llm_model,
+            &env.qiniu_llm_thinking_model,
+        );
+        let reply = ai
+            .chat_once(prompt, "你最近在忙什么呀？", None)
+            .await
+            .unwrap();
         println!("Reply:\n{}", reply);
     }
 }

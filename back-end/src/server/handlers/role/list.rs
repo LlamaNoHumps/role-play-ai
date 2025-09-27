@@ -1,6 +1,12 @@
-use crate::{database::Database, error::HttpResult};
-use axum::{Extension, Json};
-use serde::Serialize;
+use crate::{
+    database::{
+        Database,
+        models::roles::{AgeGroup, Gender},
+    },
+    error::HttpResult,
+};
+use axum::{Extension, Json, extract::Query};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 pub const PATH: &str = "/api/role/list";
@@ -8,29 +14,55 @@ pub const PATH: &str = "/api/role/list";
 #[axum::debug_handler]
 pub async fn handler(
     Extension(database): Extension<Arc<Database>>,
-) -> HttpResult<Json<Vec<ResponseItem>>> {
-    let roles = database.list_roles().await?;
+    Query(params): Query<RequestParams>,
+) -> HttpResult<Json<PaginatedResponse<ResponseItem>>> {
+    let roles = database
+        .list_roles_paginated(params.offset.unwrap_or(0), params.limit.unwrap_or(15))
+        .await?;
 
     let mut response_data = Vec::new();
 
-    for role in roles {
+    for role in &roles.items {
         response_data.push(ResponseItem {
             role_id: role.id,
-            name: role.name,
-            description: role.description,
-            traits: role.traits,
-            image_url: role.image,
+            user_id: role.user_id,
+            name: role.name.clone(),
+            description: role.description.clone(),
+            traits: role.traits.clone(),
+            image_url: role.image.clone(),
+            gender: role.gender.clone(),
+            age_group: role.age_group.clone(),
         });
     }
 
-    Ok(Json(response_data))
+    Ok(Json(PaginatedResponse {
+        items: response_data,
+        total: roles.total,
+        has_more: roles.has_more,
+    }))
+}
+
+#[derive(Deserialize)]
+pub struct RequestParams {
+    pub offset: Option<i64>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Serialize)]
+pub struct PaginatedResponse<T> {
+    pub items: Vec<T>,
+    pub total: i64,
+    pub has_more: bool,
 }
 
 #[derive(Serialize)]
 pub struct ResponseItem {
     pub role_id: i32,
+    pub user_id: i32,
     pub name: String,
     pub description: String,
     pub traits: String,
     pub image_url: String,
+    pub gender: Gender,
+    pub age_group: AgeGroup,
 }

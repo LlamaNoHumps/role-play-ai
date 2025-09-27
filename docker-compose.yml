@@ -3,7 +3,30 @@ services:
     image: mysql:oraclelinux9
     container_name: mysql
     environment:
-      MYSQL_ROOT_PASSWORD: 1486
-    ports:
-      - 3306:3306
+      MYSQL_ROOT_PASSWORD: 1234
     restart: always
+    networks:
+      - app-network
+  role-play-ai:
+    build: .
+    container_name: role-play-ai
+    depends_on:
+      - mysql
+    environment:
+      - QINIU_ACCESS_KEY=YOUR_QINIU_ACCESS_KEY
+      - QINIU_SECRET_KEY=YOUR_QINIU_SECRET_KEY
+      - QINIU_AI_API_KEY=YOUR_QINIU_AI_API_KEY
+      - QINIU_LLM_MODEL=deepseek/deepseek-v3.1-terminus
+      - QINIU_LLM_THINKING_MODEL=deepseek-r1-0528
+      - MYSQL_USERNAME=root
+      - MYSQL_PASSWORD=1234
+      - MYSQL_ENDPOINT=mysql:3306
+    ports:
+      - 8080:8080
+    restart: always
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
