@@ -1,7 +1,7 @@
 # role-play-ai
 AI角色扮演平台
 
-- 项目架构见[architecture.md](https://github.com/hlf20010508/role-play-ai/blob/master/architecture.md)
+- 项目架构见[architecture.md](https://github.com/LlamaNoHumps/role-play-ai/blob/master/architecture.md)
 - 演示Demo见[Demo]()
 
 ## 功能
