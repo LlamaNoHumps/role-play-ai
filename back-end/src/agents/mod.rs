@@ -25,7 +25,7 @@ pub struct AI {
 }
 
 impl AI {
-    pub fn new(api_key: &str) -> Self {
+    pub fn new(api_key: &str, llm_model: &str, llm_thinking_model: &str) -> Self {
         let config = OpenAIConfig::new()
             .with_api_base("https://openai.qiniu.com/v1")
             .with_api_key(api_key);
@@ -33,9 +33,7 @@ impl AI {
 
         let mut options_builder = Options::builder();
         options_builder.add_option(Opt::ApiKey(api_key.to_string()));
-        options_builder.add_option(Opt::Model(ModelRef::from_model_name(
-            "deepseek/deepseek-v3.1-terminus",
-        )));
+        options_builder.add_option(Opt::Model(ModelRef::from_model_name(llm_model)));
         options_builder.add_option(Opt::Stream(false));
 
         let options = options_builder.build();
@@ -44,7 +42,7 @@ impl AI {
 
         let mut options_builder = Options::builder();
         options_builder.add_option(Opt::ApiKey(api_key.to_string()));
-        options_builder.add_option(Opt::Model(ModelRef::from_model_name("deepseek-r1-0528")));
+        options_builder.add_option(Opt::Model(ModelRef::from_model_name(llm_thinking_model)));
         options_builder.add_option(Opt::Stream(false));
 
         let options = options_builder.build();
@@ -146,7 +144,11 @@ mod tests {
 3. “假如我们以光速飞行，会发生什么？”（荒诞假设）"#;
 
         let env = get_env();
-        let ai = AI::new(&env.qiniu_ai_api_key);
+        let ai = AI::new(
+            &env.qiniu_ai_api_key,
+            &env.qiniu_llm_model,
+            &env.qiniu_llm_thinking_model,
+        );
         let reply = ai
             .chat_once(prompt, "你最近在忙什么呀？", None)
             .await

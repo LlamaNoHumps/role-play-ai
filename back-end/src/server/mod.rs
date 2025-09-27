@@ -51,7 +51,11 @@ pub async fn run() {
         .ping_timeout(Duration::from_secs(2))
         .build_layer();
 
-    let ai = AI::new(&env.qiniu_ai_api_key);
+    let ai = AI::new(
+        &env.qiniu_ai_api_key,
+        &env.qiniu_llm_model,
+        &env.qiniu_llm_thinking_model,
+    );
 
     let storage_client = Arc::new(storage_client);
     let database = Arc::new(database);

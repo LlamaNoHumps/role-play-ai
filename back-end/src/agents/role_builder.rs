@@ -355,7 +355,11 @@ mod tests {
     #[tokio::test]
     async fn test_role_builder() {
         let env = get_env();
-        let ai = AI::new(&env.qiniu_ai_api_key);
+        let ai = AI::new(
+            &env.qiniu_ai_api_key,
+            &env.qiniu_llm_model,
+            &env.qiniu_llm_thinking_model,
+        );
         let storage_client = Arc::new(StorageClient::new(
             &env.qiniu_access_key,
             &env.qiniu_secret_key,
@@ -382,7 +386,11 @@ mod tests {
     #[tokio::test]
     async fn test_wiki_extract() {
         let env = get_env();
-        let ai = AI::new(&env.qiniu_ai_api_key);
+        let ai = AI::new(
+            &env.qiniu_ai_api_key,
+            &env.qiniu_llm_model,
+            &env.qiniu_llm_thinking_model,
+        );
         let storage_client = Arc::new(StorageClient::new(
             &env.qiniu_access_key,
             &env.qiniu_secret_key,
