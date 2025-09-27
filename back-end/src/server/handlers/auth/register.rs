@@ -15,7 +15,7 @@ pub async fn handler(
     }
 
     database
-        .add_user(&data.username, &data.password_hash, &data.image_url)
+        .add_user(&data.username, &data.password, &data.avatar)
         .await?;
 
     Ok(())
@@ -23,10 +23,7 @@ pub async fn handler(
 
 #[derive(Debug, Deserialize)]
 pub struct RequestParams {
-    #[serde(rename = "username")]
     username: String,
-    #[serde(rename = "password")]
-    password_hash: String,
-    #[serde(rename = "avatar")]
-    image_url: String,
+    password: String,
+    avatar: String,
 }
