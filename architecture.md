@@ -4,6 +4,10 @@
 
 Role Play AI 是一个基于 Rust 的 AI 角色扮演平台。平台支持用户注册登录、角色创建管理、实时对话、AI辩论等核心功能。
 
+### 分工
+- 黄凌峰（[@hlf20010508](https://github.com/hlf20010508)）：前后端，产品设计，文档，Demo
+- 邵琳（[CreepHL](https://github.com/CreepHL)）：旧版前端（弃用），需求分析，回答问题
+
 ## 2. 技术栈
 
 ### 2.1 后端技术栈
