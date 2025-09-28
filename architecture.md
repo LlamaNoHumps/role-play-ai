@@ -53,6 +53,7 @@ Role Play AI 是一个基于 Rust 的 AI 角色扮演平台。平台支持用户
 🌍 外部服务层 External Services
 ├── 🧠 七牛云AI (AI API)
 ├── ☁️ 七牛云存储 (Qiniu Storage)
+├── 🌍 维基百科 (Wikipedia)
 └── 🗄️ MySQL数据库 (Database)
 ```
 
@@ -951,47 +952,47 @@ struct Model {
 }
 ```
 
-## 前后端交互逻辑
+## 8. 前后端交互逻辑
 
-### 注册
+### 8.1 注册
 - 前端上传头像到`/api/upload`获取头像URL，若使用默认头像则跳过
 - 前端发送注册请求到 `/api/auth/register`
 - 后端处理后入库
 - 前端跳转登陆，自动填入用户名
 
-## 登陆
+### 8.2 登陆
 - 前端发送用户名和密码哈希到 `/api/auth/login`
 - 后端验证后返回用户信息和JWT令牌
 - 前端存储JWT令牌
 
-## 退出登陆
+### 8.3 退出登陆
 - 前端清除JWT令牌
 
-## 主界面
+### 8.4 主界面
 - 前端通过JWT令牌请求`/api/auth/verify`验证并获取用户信息
 - 前端通过分页请求`/api/role/list`获取角色列表
 - 前端通过分页请求`/api/conversation/list`获取对话列表
 - 前端通过分页请求`/api/debate/list`获取辩论列表
 
-## 角色搜索
+### 8.5 角色搜索
 - 前端将搜索框中的关键词发送到`/api/role/search`
 - 后端返回匹配的角色列表
 - 前端展示搜索结果
 
-## 角色创建
+### 8.6 角色创建
 - 前端上传头像到`/api/upload`获取头像URL，若使用默认头像则跳过
 - 前端请求`/api/role/auto-fill`根据角色名自动生成角色信息，若不使用则跳过
 - 前端发送角色信息到`/api/role/create`
 - 后端处理后入库
 
-## 对话
+### 8.7 对话
 - 前端通过Socket.IO连接服务器并加入角色房间
 - 若发送语音消息，则前端调用`/api/upload`上传用户语音消息获取语音URL，并发送语音消息到`voice`事件；前端监听`update_message`事件将语音转文字后的消息文本更新到消息框
 - 若发送文本消息，则前端发送文本消息到`message`事件
 - 后端处理消息，调用AI生成回复并生成语音
 - 前端监听`message`事件接收回复消息并自动播放语音
 
-## 辩论
+### 8.8 辩论
 - 用户填写辩论主题
 - 用户选择正反方角色，前端调用`/api/role/list`分页获取角色列表供用户选择，或调用`/api/role/search`搜索角色
 - 前端发送创建辩论请求到`/api/debate/new`
@@ -1001,7 +1002,7 @@ struct Model {
 - 前端接收回复消息并自动播放语音
 - 前端继续发送请求到`/api/debate/start`，并重复上述步骤，直到用户点击结束辩论按钮
 
-## 用户设置
+### 8.9 用户设置
 - 前端通过JWT令牌请求`/api/user/profile`获取用户信息
 - 前端上传新头像到`/api/upload`获取头像URL
 - 前端发送更新请求到`/api/user/avatar`更新头像
@@ -1011,7 +1012,7 @@ struct Model {
 - 前端发送删除请求到`/api/user/conversations/delete`删除所有对话
 - 前端发送删除请求到`/api/user/debates/delete`删除所有辩论
 
-## 8. 环境变量
+## 9. 环境变量
 - `PORT`: 服务器监听端口 (默认: 8080)
 - `TRACING_LEVEL`: 日志级别 (默认: info)
 - `QINIU_ACCESS_KEY`: 七牛云 Access Key
@@ -1023,26 +1024,26 @@ struct Model {
 - `MYSQL_PASSWORD`: MySQL 密码
 - `MYSQL_ENDPOINT`: MySQL 连接地址
 
-## 9. 安全考虑
+## 10. 安全考虑
 
-### 9.1 认证安全
+### 10.1 认证安全
 - JWT令牌有效期7天
 - 每个用户独立的JWT密钥
 - 密码使用SHA-256哈希存储
 
-### 9.2 API安全
+### 10.2 API安全
 - 所有敏感接口需要Bearer token认证
 - SQL注入防护 (SeaORM)
 
-### 9.3 文件上传安全
+### 10.3 文件上传安全
 - 文件大小限制50MB
 - 七牛云安全存储
 
-## 10. 性能优化
+## 11. 性能优化
 
-### 10.1 数据传输优化
+### 11.1 数据传输优化
 - 分页查询减少数据传输
 
-### 10.2 并发处理
+### 11.2 并发处理
 - 异步IO处理
 - 独立协程处理历史摘要
