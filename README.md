@@ -2,7 +2,7 @@
 AI角色扮演平台
 
 - 项目架构见[architecture.md](https://github.com/LlamaNoHumps/role-play-ai/blob/master/architecture.md)
-- 演示Demo见[Demo](https://github.com/LlamaNoHumps/role-play-ai/blob/master/role-play-ai-demo.mp4)
+- 演示Demo见[role-play-ai-demo.mp4](https://github.com/LlamaNoHumps/role-play-ai/blob/master/role-play-ai-demo.mp4)
 - 问题回答见[answer.md](https://github.com/LlamaNoHumps/role-play-ai/blob/master/answer.md)
 
 ## 功能
